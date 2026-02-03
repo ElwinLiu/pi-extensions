@@ -49,8 +49,8 @@ class BoxEditor extends CustomEditor {
 			return `${border("│")}${prefix}${line}${padding}${border("│")}`;
 		});
 
-		const topBorder = border(`┌${"─".repeat(innerWidth)}┐`);
-		const bottomBorder = border(`└${"─".repeat(innerWidth)}┘`);
+		const topBorder = border(`╭${"─".repeat(innerWidth)}╮`);
+		const bottomBorder = border(`╰${"─".repeat(innerWidth)}╯`);
 
 		const paddedAutocomplete = autocompleteLines.map((line) => {
 			const padding = " ".repeat(Math.max(0, width - visibleWidth(line)));

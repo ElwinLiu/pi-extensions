@@ -1,5 +1,5 @@
 {
-  "name": "box-input",
+  "name": "droid-style",
   "version": "1.0.0",
   "description": "Custom input box with closed rectangular border",
   "main": "index.ts",

@@ -1,4 +1,4 @@
-# Box Input Extension
+# Droid Style Extension
 
 Custom input box with a closed rectangular border and orange accent color.
 
@@ -10,7 +10,7 @@ Custom input box with a closed rectangular border and orange accent color.
 
 ## Installation
 
-1. The extension is already in `~/.pi/agent/extensions/box-input/`
+1. The extension is already in `~/.pi/agent/extensions/droid-style/`
 2. Restart Pi or reload extensions
 3. Select the `amber-dark` theme in Pi settings (`/settings` → Theme)
 
