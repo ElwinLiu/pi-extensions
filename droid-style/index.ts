@@ -28,7 +28,7 @@ function findLastBorderIndex(lines: string[]): number {
 class BoxEditor extends CustomEditor {
 	render(width: number): string[] {
 		const innerWidth = Math.max(1, width - 2);
-		const border = fullTheme ? (text: string) => fullTheme.fg("borderMuted", text) : (text: string) => text;
+		const border = this.borderColor;
 		const prompt = fullTheme ? fullTheme.fg("accent", ">") : ">";
 		const promptPrefix = ` ${prompt} `;
 		const prefixWidth = visibleWidth(promptPrefix);
