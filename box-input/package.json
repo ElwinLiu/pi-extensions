@@ -1,0 +1,9 @@
+{
+  "name": "box-input",
+  "version": "1.0.0",
+  "description": "Custom input box with closed rectangular border",
+  "main": "index.ts",
+  "pi": {
+    "extension": true
+  }
+}
