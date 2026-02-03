@@ -1,0 +1,9 @@
+{
+  "name": "agents-commands",
+  "version": "1.0.0",
+  "description": "Expose ~/.agents/commands/*.md as /:<name> commands",
+  "main": "index.ts",
+  "pi": {
+    "extension": true
+  }
+}
