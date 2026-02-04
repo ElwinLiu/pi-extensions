@@ -1,39 +1,53 @@
 # Droid Style Extension
 
-Custom input box with a closed rectangular border and orange accent color.
+Custom “droid” look for pi:
+- a boxed input editor
+- and droid-style tool-call badges
 
 ## Features
 
-- Closed rectangular box around the input (┌─┐│└─┘)
-- Orange `>` prompt matching your screenshot
-- Clean, minimal design
+- Closed rectangular box around the input (╭─╮ │ ╰─╯)
+- Orange `>` prompt
+- Droid-style tool-call badges for built-in tools (`read`, `write`, `edit`, `ls`, `find`, `grep`, `bash`)
+  - Badge background color: `#feb17f`
 
 ## Theme Settings
 
-This extension works with the `droid` theme which has:
-- Transparent backgrounds for user messages and tool boxes
-- Border colors defined but not rendered (see Limitations below)
+This extension works best with the `droid` theme which has:
+- transparent/low-contrast backgrounds for user messages and tool boxes
+- orange-ish accent color
 
 ## Installation
 
-1. The extension is already in `~/.pi/agent/extensions/droid-style/`
-2. Select the `droid` theme in Pi settings (`/settings` → Theme)
-3. Reload extensions if needed
+1. Ensure the extension is present in `~/.pi/agent/extensions/droid-style/`
+2. Select the `droid` theme in pi settings (`/settings` → Theme)
+3. Reload extensions (`/reload`) or restart pi
 
 ## Files
 
-- `index.ts` - Main extension with custom BoxEditor component
+- `index.ts` - Entry point; installs the custom editor + registers the tool badge overrides
+- `ansi.ts` - Shared ANSI helpers (`stripAnsi`)
+- `tool-call-tags.ts` - Tool overrides + badge renderers
 - `package.json` - Extension manifest
 
 ## How it works
 
-This extension overrides Pi's default input editor with a custom `BoxEditor` class that:
-- Draws a continuous box border using Unicode box-drawing characters
-- Styles the `>` prompt with the theme's accent color (amber/orange)
-- Maintains all default editor functionality (keybindings, etc.)
+### Boxed editor
 
-## Limitations
+This extension overrides pi’s default input editor with a custom `BoxEditor` that:
+- draws a continuous box border using Unicode box-drawing characters
+- styles the `>` prompt with the theme’s accent color
+- keeps all default editor functionality (keybindings, completion, etc.)
 
-**Chat message boxes**: The extension system does not provide hooks to customize how user messages or tool calling boxes are rendered. While the `droid` theme sets transparent backgrounds for these elements, adding visible borders around them would require changes to pi's core code (specifically `UserMessageComponent` and `ToolExecutionComponent`).
+### Tool-call badges
 
-To achieve boxed user messages and tool calls, the core components would need to be modified to use a bordered container, or the extension API would need to expose message rendering hooks.
+Tool-call badges are implemented by **overriding the built-in tools** via `pi.registerTool()` (same tool names).
+Execution delegates to the built-in implementations (`createReadTool(ctx.cwd)`, etc.), but rendering is customized
+via `renderCall`/`renderResult`.
+
+## Limitations / Notes
+
+- This does **not** add borders around chat messages or tool execution boxes themselves. Doing that would still
+  require core changes (e.g. changing `UserMessageComponent` / `ToolExecutionComponent`).
+- Since this uses tool overrides, any other extension overriding the same tool names will conflict.
+  (Whichever extension registers last “wins” for that tool.)

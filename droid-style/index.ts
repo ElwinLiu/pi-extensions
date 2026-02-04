@@ -1,16 +1,11 @@
 import { CustomEditor, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { visibleWidth } from "@mariozechner/pi-tui";
 
+import { stripAnsi } from "./ansi.js";
+import { registerToolCallTags } from "./tool-call-tags.js";
+
 // Store the full theme reference
 let fullTheme: any = null;
-
-// Strip ANSI escape codes
-function stripAnsi(str: string): string {
-	return str
-		.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "")
-		.replace(/\x1b\]8;;[^\x07]*\x07/g, "")
-		.replace(/\x1b_[^\x07\x1b]*(?:\x07|\x1b\\)/g, "");
-}
 
 // Check if a line is a border-only line (just ─ characters)
 function isBorderLine(line: string): boolean {
@@ -62,6 +57,9 @@ class BoxEditor extends CustomEditor {
 }
 
 export default function (pi: ExtensionAPI) {
+	// Droid-style tool badges for built-in tool calls
+	registerToolCallTags(pi);
+
 	pi.on("session_start", (_event, ctx) => {
 		// Store reference to full theme
 		fullTheme = ctx.ui.theme;
