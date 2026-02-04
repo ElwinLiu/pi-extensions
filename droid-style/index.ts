@@ -1,11 +1,14 @@
 import { CustomEditor, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { visibleWidth } from "@mariozechner/pi-tui";
 
-import { stripAnsi } from "./ansi.js";
+import { fgHex, stripAnsi } from "./ansi.js";
 import { registerToolCallTags } from "./tool-call-tags.js";
 
 // Store the full theme reference
 let fullTheme: any = null;
+
+// Light gray border for the input box
+const INPUT_BORDER_COLOR = "#c0c0c0";
 
 // Check if a line is a border-only line (just ─ characters)
 function isBorderLine(line: string): boolean {
@@ -23,7 +26,9 @@ function findLastBorderIndex(lines: string[]): number {
 class BoxEditor extends CustomEditor {
 	render(width: number): string[] {
 		const innerWidth = Math.max(1, width - 2);
-		const border = this.borderColor;
+		const border = fullTheme
+			? (text: string) => fgHex(fullTheme, INPUT_BORDER_COLOR, text)
+			: this.borderColor;
 		const prompt = fullTheme ? fullTheme.fg("accent", ">") : ">";
 		const promptPrefix = ` ${prompt} `;
 		const prefixWidth = visibleWidth(promptPrefix);

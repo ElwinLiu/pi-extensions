@@ -7,6 +7,7 @@ Custom “droid” look for pi:
 ## Features
 
 - Closed rectangular box around the input (╭─╮ │ ╰─╯)
+- Light gray input border (`#c0c0c0`)
 - Orange `>` prompt
 - Droid-style tool-call badges for built-in tools (`read`, `write`, `edit`, `ls`, `find`, `grep`, `bash`)
   - Badge background color: `#feb17f`
