@@ -300,11 +300,7 @@ function parsePermissionFlag(pi: ExtensionAPI): RiskLevel | undefined {
 	return isRiskLevel(normalized) ? normalized : undefined;
 }
 
-export type PermissionSystemController = {
-	cyclePermission(): void;
-};
-
-export function registerPermissionSystem(pi: ExtensionAPI): PermissionSystemController {
+export function registerPermissionSystem(pi: ExtensionAPI): void {
 	let level: RiskLevel = DEFAULT_LEVEL;
 	let latestContext: ExtensionContext | undefined;
 
@@ -431,7 +427,4 @@ export function registerPermissionSystem(pi: ExtensionAPI): PermissionSystemCont
 		};
 	});
 
-	return {
-		cyclePermission,
-	};
 }

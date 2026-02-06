@@ -35,7 +35,7 @@ This extension works best with the `droid` theme which has:
 ## Companion extension
 
 Permission/risk gating is now split into a separate extension:
-- `~/.pi/agent/extensions/droid-permissions/`
+- `~/.pi/agent/extensions/permission/`
 
 ## How it works
 
