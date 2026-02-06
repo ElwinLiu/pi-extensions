@@ -322,7 +322,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 	function cyclePermission(): void {
 		if (!latestContext) return;
 		const next = cycleLevel(level);
-		setLevel(next, latestContext);
+		setLevel(next, latestContext, { notify: false });
 	}
 
 	pi.registerFlag("permission-level", {
