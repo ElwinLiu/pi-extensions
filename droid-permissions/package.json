@@ -1,9 +1,0 @@
-{
-  "name": "droid-permissions",
-  "version": "1.0.0",
-  "description": "Permission/risk gate extension with droid-style execute prompt",
-  "main": "index.ts",
-  "pi": {
-    "extension": true
-  }
-}

@@ -1,15 +1,15 @@
-# Droid Permissions Extension
+# Permission Extension
 
-Permission/risk-gate logic extracted from `droid-style`.
+Permission/risk-gate logic for controlling tool and bash execution.
 
 ## What it does
 
 - Registers low/medium/high risk policy for tool calls + bash
 - Shows permission widget above the editor
-- Uses droid-style `EXECUTE` badge prompt with only:
+- Uses `EXECUTE` badge prompt with:
   - `Yes, allow`
   - `No, Cancel`
-- Wires Ctrl+L permission cycling through droid-style editor bridge
+- Wires Shift+Tab to cycle permission levels
 - Uses a broad command taxonomy across:
   - shell/coreutils read vs write/delete operations
   - git read/local-mutate/remote-mutate operations
@@ -23,6 +23,8 @@ Permission/risk-gate logic extracted from `droid-style`.
 - **Medium**: mostly local/recoverable mutations (builds, installs, local edits)
 - **High**: security-sensitive, remote, destructive, or irreversible operations
 
-## Dependency
+## Usage
 
-Designed to run alongside `droid-style` so Ctrl+L can be intercepted by the boxed editor.
+- `/permission` - Show permission level selector
+- `/permission [low|medium|high]` - Set permission level directly
+- `Shift+Tab` - Cycle through permission levels

@@ -37,6 +37,12 @@ const PERMISSION_LABELS: Record<RiskLevel, string> = {
 	high: "Perm (High) - allow all commands",
 };
 
+const SELECTOR_DESCRIPTIONS: Record<RiskLevel, string> = {
+	low: "low: edits and read-only commands",
+	medium: "medium: allow reversible commands",
+	high: "high: allow all commands",
+};
+
 const PERMISSION_COLORS: Record<RiskLevel, string> = {
 	low: "#ffffff",
 	medium: "#e3992b",
@@ -317,13 +323,19 @@ export function registerPermissionSystem(pi: ExtensionAPI): PermissionSystemCont
 		}
 	}
 
+	function cyclePermission(): void {
+		if (!latestContext) return;
+		const next = cycleLevel(level);
+		setLevel(next, latestContext);
+	}
+
 	pi.registerFlag("permission-level", {
 		description: "Max risk level auto-approved: low | medium | high",
 		type: "string",
 	});
 
-	pi.registerCommand("permissions", {
-		description: "Show or set permission level: /permissions [low|medium|high]",
+	pi.registerCommand("permission", {
+		description: "Show or set permission level: /permission [low|medium|high]",
 		getArgumentCompletions: (prefix) => {
 			const choices = LEVELS.filter((item) => item.startsWith(prefix.toLowerCase()));
 			return choices.length ? choices.map((value) => ({ value, label: value })) : null;
@@ -331,24 +343,38 @@ export function registerPermissionSystem(pi: ExtensionAPI): PermissionSystemCont
 		handler: async (args, ctx) => {
 			latestContext = ctx;
 			const value = args.trim().toLowerCase();
+			
+			// If no argument provided, show selector with all three options
 			if (!value) {
-				ctx.ui.notify(`Permission level: ${level.toUpperCase()}`, "info");
-				renderPermissionWidget(ctx, level);
+				const descriptions = LEVELS.map((lvl) => SELECTOR_DESCRIPTIONS[lvl]);
+
+				const choice = await ctx.ui.select("Select permission level:", descriptions);
+
+				if (!choice) return;
+
+				const selectedLevel = LEVELS.find((lvl) => SELECTOR_DESCRIPTIONS[lvl] === choice);
+				if (selectedLevel && isRiskLevel(selectedLevel)) {
+					setLevel(selectedLevel, ctx);
+				}
 				return;
 			}
+			
+			// Direct level setting
 			if (!isRiskLevel(value)) {
-				ctx.ui.notify("Usage: /permissions [low|medium|high]", "error");
+				ctx.ui.notify("Usage: /permission [low|medium|high]", "error");
 				return;
 			}
 			setLevel(value, ctx);
 		},
 	});
 
-	function cyclePermission(): void {
-		if (!latestContext) return;
-		const next = cycleLevel(level);
-		setLevel(next, latestContext);
-	}
+	// Register native Shift+Tab shortcut
+	pi.registerShortcut("shift+tab", {
+		description: "Cycle permission levels",
+		handler: () => {
+			cyclePermission();
+		},
+	});
 
 	pi.on("session_start", async (_event, ctx) => {
 		latestContext = ctx;
