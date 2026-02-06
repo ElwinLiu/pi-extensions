@@ -80,6 +80,9 @@ const LOW_RISK_RULES: Rule[] = [
 	{ pattern: /^\s*(brew)\s+(list|info|search)\b/i, reason: "package query" },
 	{ pattern: /^\s*(apt|apt-cache)\s+(list|search|show|policy)\b/i, reason: "package query" },
 
+	// GitHub CLI read-only queries
+	{ pattern: /^\s*gh\s+(--version|version|help|auth\s+status|repo\s+view|issue\s+view|pr\s+view|run\s+view|run\s+list|api\s+\/repos\/[^\s]+\/[^\s]+\/actions\/runs)\b/i, reason: "github query" },
+
 	// Infra/container read-only queries
 	{ pattern: /^\s*docker\s+(ps|images|inspect|logs|stats|top|events|version|info)\b/i, reason: "container query" },
 	{ pattern: /^\s*kubectl\s+(get|describe|logs|api-resources|api-versions|version|config\s+view)\b/i, reason: "cluster query" },
@@ -100,6 +103,7 @@ const MEDIUM_RISK_RULES: Rule[] = [
 
 	// Language/package ecosystem mutations
 	{ pattern: /^\s*(npm|pnpm|yarn)\s+(install|add|update|upgrade|remove|uninstall|ci)\b/i, reason: "package mutation" },
+	{ pattern: /^\s*npx\b/i, reason: "one-off package/script execution" },
 	{ pattern: /^\s*(pip|pip3)\s+(install|uninstall)\b/i, reason: "package mutation" },
 	{ pattern: /^\s*(cargo|go|gem|bundle|poetry|uv)\s+(install|add|get|update|remove|sync)\b/i, reason: "package/toolchain mutation" },
 	{ pattern: /^\s*terraform\s+fmt\b/i, reason: "source formatting mutation" },
@@ -141,6 +145,7 @@ const HIGH_RISK_RULES: Rule[] = [
 
 	// Remote mutation / exposure
 	{ pattern: /\bgit\s+push\b/i, reason: "remote mutation" },
+	{ pattern: /^\s*gh\s+(issue\s+(create|edit|close|reopen|delete)|pr\s+(create|merge|close|reopen|ready|review)|repo\s+(create|delete|rename|edit)|release\s+create|secret\s+set|variable\s+set|workflow\s+run|run\s+rerun|api\s+.*\b(POST|PUT|PATCH|DELETE)\b)/i, reason: "github remote mutation" },
 	{ pattern: /\bgit\s+reset\b[^\n]*--hard\b/i, reason: "destructive history rewrite" },
 	{ pattern: /\bgit\s+clean\b[^\n]*\s-f\b/i, reason: "destructive workspace clean" },
 	{ pattern: /\bgit\s+branch\b[^\n]*\s-[dD]\b/i, reason: "branch deletion" },
