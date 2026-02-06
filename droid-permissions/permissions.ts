@@ -43,43 +43,116 @@ const PERMISSION_COLORS: Record<RiskLevel, string> = {
 	high: "#d56a26",
 };
 
+// Rule coverage is based on common command behavior documented by upstream/manual sources:
+// GNU coreutils (ls/rm), Git docs (push/reset), Docker docs (publish ports),
+// Kubernetes docs (kubectl apply), systemctl man page, npm lifecycle scripts, and Terraform command refs.
 const LOW_RISK_RULES: Rule[] = [
-	{ pattern: /^\s*echo\b/i, reason: "display" },
-	{ pattern: /^\s*pwd\b/i, reason: "display" },
-	{ pattern: /^\s*whoami\b/i, reason: "display" },
-	{ pattern: /^\s*date\b/i, reason: "display" },
-	{ pattern: /^\s*ps\b/i, reason: "info" },
-	{ pattern: /^\s*top\b/i, reason: "info" },
-	{ pattern: /^\s*git\s+(status|log|diff)\b/i, reason: "read-only git" },
-	{ pattern: /^\s*(cat|less|head|tail)\b/i, reason: "read-only file" },
+	// Display / introspection
+	{ pattern: /^\s*(echo|printf)\b/i, reason: "display" },
+	{ pattern: /^\s*(pwd|whoami|id|groups|date|uname|hostname|uptime)\b/i, reason: "system info" },
+	{ pattern: /^\s*(env|printenv|which|type)\b/i, reason: "environment info" },
+	{ pattern: /^\s*(ls|tree)\b/i, reason: "read-only listing" },
+	{ pattern: /^\s*(cat|less|more|head|tail|wc|stat|file)\b/i, reason: "read-only file" },
+	{ pattern: /^\s*sed\b(?![^\n]*\s-i\b)/i, reason: "text processing" },
+	{ pattern: /^\s*(grep|egrep|fgrep|awk|cut|sort|uniq|tr|column|nl)\b/i, reason: "text processing" },
+	{ pattern: /^(?!.*\b(delete|exec|ok)\b)\s*find\b/i, reason: "file discovery" },
+
+	// Process, network, resource inspection
+	{ pattern: /^\s*(ps|top|htop|pgrep|pstree|lsof|ss|netstat|df|du|free|vmstat|iostat|dmesg)\b/i, reason: "runtime inspection" },
+	{ pattern: /^\s*(md5sum|sha1sum|sha256sum|sha512sum|cksum|b2sum)\b/i, reason: "checksums" },
+
+	// Git read-only operations
+	{ pattern: /^\s*git\s+(status|log|show|diff|blame|grep|rev-parse|rev-list|ls-files|ls-tree|cat-file)\b/i, reason: "read-only git" },
+	{ pattern: /^\s*git\s+branch\b(?![^\n]*\s-[dDmM])/i, reason: "read-only git branch view" },
+	{ pattern: /^\s*git\s+tag\b(?![^\n]*\s-d\b)/i, reason: "read-only git tag view" },
+	{ pattern: /^\s*git\s+remote\s+-v\b/i, reason: "read-only git remote view" },
+	{ pattern: /^\s*git\s+stash\s+list\b/i, reason: "read-only git stash view" },
+
+	// Package manager read-only queries
+	{ pattern: /^\s*(npm|pnpm|yarn)\s+(ls|list|outdated|info|view)\b/i, reason: "package query" },
+	{ pattern: /^\s*(pip|pip3)\s+(list|show|freeze)\b/i, reason: "package query" },
+	{ pattern: /^\s*(brew)\s+(list|info|search)\b/i, reason: "package query" },
+	{ pattern: /^\s*(apt|apt-cache)\s+(list|search|show|policy)\b/i, reason: "package query" },
+
+	// Infra/container read-only queries
+	{ pattern: /^\s*docker\s+(ps|images|inspect|logs|stats|top|events|version|info)\b/i, reason: "container query" },
+	{ pattern: /^\s*kubectl\s+(get|describe|logs|api-resources|api-versions|version|config\s+view)\b/i, reason: "cluster query" },
+	{ pattern: /^\s*helm\s+(list|status|history|get)\b/i, reason: "release query" },
+	{ pattern: /^\s*terraform\s+(validate|show|plan)\b/i, reason: "infra plan/query" },
 ];
 
 const MEDIUM_RISK_RULES: Rule[] = [
-	{ pattern: /\btouch\b/i, reason: "file mutation" },
-	{ pattern: /\bmkdir\b/i, reason: "file mutation" },
-	{ pattern: /\bmv\b/i, reason: "file mutation" },
-	{ pattern: /\bcp\b/i, reason: "file mutation" },
-	{ pattern: /\bnpm\s+install\b/i, reason: "package install" },
-	{ pattern: /\bpip(?:3)?\s+install\b/i, reason: "package install" },
-	{ pattern: /\bgit\s+(commit|checkout|pull)\b/i, reason: "git mutation" },
-	{ pattern: /^\s*make(?:\s|$)/i, reason: "build" },
-	{ pattern: /\bnpm\s+run\s+build\b/i, reason: "build" },
-	{ pattern: /\bmvn\s+compile\b/i, reason: "build" },
+	// Local file mutations (usually recoverable)
+	{ pattern: /\b(touch|mkdir|rmdir|cp|mv|ln|install)\b/i, reason: "file mutation" },
+	{ pattern: /^\s*sed\b[^\n]*\s-i\b/i, reason: "in-place file edit" },
 	{ pattern: /(^|[^<])>(?!>)/, reason: "redirect write" },
 	{ pattern: />>/, reason: "redirect append" },
+	{ pattern: /\btee\b/i, reason: "write via tee" },
+
+	// Git local history/index mutations (recoverable with effort)
+	{ pattern: /^\s*git\s+(add|restore|checkout|switch|commit|merge|rebase|cherry-pick|revert|pull|fetch|stash(?!\s+list\b))\b/i, reason: "git mutation" },
+
+	// Language/package ecosystem mutations
+	{ pattern: /^\s*(npm|pnpm|yarn)\s+(install|add|update|upgrade|remove|uninstall|ci)\b/i, reason: "package mutation" },
+	{ pattern: /^\s*(pip|pip3)\s+(install|uninstall)\b/i, reason: "package mutation" },
+	{ pattern: /^\s*(cargo|go|gem|bundle|poetry|uv)\s+(install|add|get|update|remove|sync)\b/i, reason: "package/toolchain mutation" },
+	{ pattern: /^\s*terraform\s+fmt\b/i, reason: "source formatting mutation" },
+
+	// Build/test execution (side effects typically local)
+	{ pattern: /^\s*(make|cmake|ninja|meson|mvn|gradle|\.\/gradlew)\b/i, reason: "build pipeline" },
+	{ pattern: /^\s*(pytest|jest|vitest)\b/i, reason: "test run" },
+	{ pattern: /^\s*(go\s+test|cargo\s+test)\b/i, reason: "test run" },
+	{ pattern: /^\s*(npm|pnpm|yarn)\s+run\s+\S+/i, reason: "script run" },
+
+	// Service/container operations with local side effects
+	{ pattern: /^\s*(systemctl|service|launchctl)\s+(start|stop|restart|reload|enable|disable)\b/i, reason: "service state mutation" },
+	{ pattern: /^\s*docker\s+(build|pull|compose\s+(up|down|build|pull)|start|stop|restart|rm|rmi|run)\b/i, reason: "container mutation" },
 ];
 
 const HIGH_RISK_RULES: Rule[] = [
-	{ pattern: /\bsudo\b/i, reason: "elevated privileges" },
-	{ pattern: /\brm\s+(-rf|-fr|--recursive(?:\s+\S+)*\s+--force|--force(?:\s+\S+)*\s+--recursive)\b/i, reason: "destructive delete" },
+	// Privilege escalation / identity changes
+	{ pattern: /\b(sudo|doas|su|pkexec)\b/i, reason: "elevated privileges" },
+	{ pattern: /\b(useradd|userdel|usermod|groupadd|groupdel|passwd)\b/i, reason: "identity/security mutation" },
+
+	// Irreversible/destructive filesystem & disk actions
+	{ pattern: /\brm\b/i, reason: "destructive delete" },
+	{ pattern: /\b(shred|wipefs|mkfs(?:\.\w+)?|fdisk|parted|sgdisk)\b/i, reason: "disk/filesystem destructive action" },
+	{ pattern: /\bdd\b[^\n]*\bof=\/dev\//i, reason: "raw disk write" },
+	{ pattern: /\btruncate\b/i, reason: "destructive truncate" },
+	{ pattern: /^\s*diskutil\s+erase/i, reason: "disk erase" },
+
+	// Security-sensitive permission/firewall/system tuning actions
+	{ pattern: /\b(chown|chgrp|chmod|setfacl|setcap|visudo|chattr)\b/i, reason: "permission/security mutation" },
+	{ pattern: /\b(ufw|iptables|nft|firewall-cmd|pfctl|sysctl)\b/i, reason: "network/system security mutation" },
+	{ pattern: /\b(reboot|shutdown|halt|poweroff|init\s+[06])\b/i, reason: "system availability impact" },
+
+	// Remote code execution patterns
 	{ pattern: /\bcurl\b[^|\n]*\|\s*(bash|sh|zsh|fish)\b/i, reason: "remote execution" },
 	{ pattern: /\bwget\b[^|\n]*\|\s*(bash|sh|zsh|fish)\b/i, reason: "remote execution" },
+	{ pattern: /\biwr\b[^|\n]*\|\s*iex\b/i, reason: "remote execution" },
+	{ pattern: /\binvoke-webrequest\b[^|\n]*\|\s*invoke-expression\b/i, reason: "remote execution" },
 	{ pattern: /\beval\b/i, reason: "dynamic execution" },
+
+	// Remote mutation / exposure
 	{ pattern: /\bgit\s+push\b/i, reason: "remote mutation" },
-	{ pattern: /\b(ufw|iptables|firewall-cmd|nft)\b/i, reason: "firewall change" },
-	{ pattern: /\b(docker\s+run\b.*(?:\s-p\s|\s--publish\s)|kubectl\s+port-forward\b|ssh\s+-R\b|ngrok\b|cloudflared\b)/i, reason: "port exposure" },
-	{ pattern: /\b(drop|truncate|delete|destroy|wipe)\b.*\b(prod|production|database|db|sensitive)\b/i, reason: "prod/db destructive action" },
-	{ pattern: /\b(kubectl|helm|terraform)\b.*\b(apply|delete|destroy)\b.*\b(prod|production)\b/i, reason: "prod infra mutation" },
+	{ pattern: /\bgit\s+reset\b[^\n]*--hard\b/i, reason: "destructive history rewrite" },
+	{ pattern: /\bgit\s+clean\b[^\n]*\s-f\b/i, reason: "destructive workspace clean" },
+	{ pattern: /\bgit\s+branch\b[^\n]*\s-[dD]\b/i, reason: "branch deletion" },
+	{ pattern: /\bgit\s+tag\b[^\n]*\s-d\b/i, reason: "tag deletion" },
+	{ pattern: /\b(docker\s+run\b[^\n]*(\s-p\s|\s--publish\s|\s--network\s+host\b|\s--privileged\b)|kubectl\s+port-forward\b|ssh\s+-R\b|nc\b[^\n]*\s-l\b|socat\b[^\n]*\bLISTEN\b|ngrok\b|cloudflared\b|localtunnel\b)/i, reason: "port exposure" },
+
+	// Infra orchestration / destructive remote control
+	{ pattern: /\bterraform\s+(apply|destroy|state\s+rm|taint|import)\b/i, reason: "infra mutation" },
+	{ pattern: /\bkubectl\s+(apply|create|delete|replace|patch|edit|scale|set|drain|cordon|uncordon|rollout\s+(restart|undo))\b/i, reason: "cluster mutation" },
+	{ pattern: /\bhelm\s+(install|upgrade|rollback|uninstall|delete)\b/i, reason: "release mutation" },
+	{ pattern: /\bansible-playbook\b/i, reason: "remote orchestration mutation" },
+
+	// System package manager changes (broad machine impact)
+	{ pattern: /\b(apt(?:-get)?|dnf|yum|pacman|zypper)\s+(install|upgrade|dist-upgrade|remove|purge|autoremove)\b/i, reason: "system package mutation" },
+	{ pattern: /\bbrew\s+(install|upgrade|uninstall|tap|untap|services\s+(start|stop|restart))\b/i, reason: "system package/service mutation" },
+
+	// Database destructive intent
+	{ pattern: /\b(drop|truncate|delete|destroy|wipe)\b[^\n]*\b(table|database|schema|collection|index|prod|production|db|sensitive)\b/i, reason: "database/data destructive action" },
 ];
 
 function isRiskLevel(value: string): value is RiskLevel {

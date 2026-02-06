@@ -10,6 +10,18 @@ Permission/risk-gate logic extracted from `droid-style`.
   - `Yes, allow`
   - `No, Cancel`
 - Wires Ctrl+L permission cycling through droid-style editor bridge
+- Uses a broad command taxonomy across:
+  - shell/coreutils read vs write/delete operations
+  - git read/local-mutate/remote-mutate operations
+  - package manager query/install/remove operations
+  - docker/kubectl/helm/terraform read vs mutate operations
+  - privilege escalation, firewall/system tuning, and destructive disk commands
+
+## Risk level intent
+
+- **Low**: read-only inspection and query commands
+- **Medium**: mostly local/recoverable mutations (builds, installs, local edits)
+- **High**: security-sensitive, remote, destructive, or irreversible operations
 
 ## Dependency
 
