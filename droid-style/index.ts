@@ -1,11 +1,13 @@
 import { CustomEditor, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { visibleWidth } from "@mariozechner/pi-tui";
+import { Key, matchesKey, visibleWidth } from "@mariozechner/pi-tui";
 
 import { fgHex, stripAnsi } from "./ansi.js";
+import { registerPermissionSystem } from "./permissions.js";
 import { registerToolCallTags } from "./tool-call-tags.js";
 
 // Store the full theme reference
 let fullTheme: any = null;
+let cyclePermissionLevel: (() => void) | undefined;
 
 // Light gray border for the input box
 const INPUT_BORDER_COLOR = "#c0c0c0";
@@ -24,6 +26,14 @@ function findLastBorderIndex(lines: string[]): number {
 }
 
 class BoxEditor extends CustomEditor {
+	handleInput(data: string): void {
+		if (matchesKey(data, Key.ctrl("l"))) {
+			cyclePermissionLevel?.();
+			return;
+		}
+		super.handleInput(data);
+	}
+
 	render(width: number): string[] {
 		const innerWidth = Math.max(1, width - 2);
 		const border = fullTheme
@@ -64,6 +74,9 @@ class BoxEditor extends CustomEditor {
 export default function (pi: ExtensionAPI) {
 	// Droid-style tool badges for built-in tool calls
 	registerToolCallTags(pi);
+	// Integrated permission system with droid-style UI
+	const permissionController = registerPermissionSystem(pi);
+	cyclePermissionLevel = permissionController.cyclePermission;
 
 	pi.on("session_start", (_event, ctx) => {
 		// Store reference to full theme

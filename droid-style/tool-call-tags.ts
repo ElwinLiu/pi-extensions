@@ -45,7 +45,7 @@ function getTextOutput(result: AgentToolResult<any> | undefined): string {
 		.replace(/\r/g, "");
 }
 
-function badge(theme: any, label: string): string {
+export function badge(theme: any, label: string): string {
 	// Use inverse so we don't disturb the surrounding tool-block background.
 	// We set the *foreground* to TAG_BG, then inverse makes it the background.
 	return theme.inverse(fgHex(theme, TAG_BG, theme.bold(` ${label} `)));
