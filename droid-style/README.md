@@ -28,8 +28,14 @@ This extension works best with the `droid` theme which has:
 
 - `index.ts` - Entry point; installs the custom editor + registers the tool badge overrides
 - `ansi.ts` - Shared ANSI helpers (`stripAnsi`)
+- `editor-shortcuts.ts` - Lightweight editor shortcut hook registry (used by optional companion extensions)
 - `tool-call-tags.ts` - Tool overrides + badge renderers
 - `package.json` - Extension manifest
+
+## Companion extension
+
+Permission/risk gating is now split into a separate extension:
+- `~/.pi/agent/extensions/droid-permissions/`
 
 ## How it works
 

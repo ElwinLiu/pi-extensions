@@ -4,8 +4,8 @@ import type {
 	ToolCallEvent,
 	UserBashEventResult,
 } from "@mariozechner/pi-coding-agent";
-import { fgHex } from "./ansi.js";
-import { badge } from "./tool-call-tags.js";
+import { fgHex } from "../droid-style/ansi.js";
+import { badge } from "../droid-style/tool-call-tags.js";
 
 type RiskLevel = "low" | "medium" | "high";
 
