@@ -11,6 +11,9 @@ let fullTheme: any = null;
 // Light gray border for the input box
 const INPUT_BORDER_COLOR = "#c0c0c0";
 
+// Bash mode prompt color (bright green)
+const BASH_PROMPT_COLOR = "#05ff03";
+
 // Check if a line is a border-only line (just ─ characters or empty)
 function isBorderLine(line: string): boolean {
 	const clean = stripAnsi(line).replace(/\s/g, "");
@@ -37,7 +40,17 @@ class BoxEditor extends CustomEditor {
 		const border = fullTheme
 			? (text: string) => fgHex(fullTheme, INPUT_BORDER_COLOR, text)
 			: this.borderColor;
-		const prompt = fullTheme ? fullTheme.fg("accent", ">") : ">";
+
+		// Check if in bash mode (text starts with '!' or '!!')
+		const text = this.getText();
+		const isBashMode = text.startsWith("!");
+		const isDoubleBang = text.startsWith("!!");
+
+		// Use '!' or '!!' in green for bash mode, '>' in accent color otherwise
+		const promptChar = isDoubleBang ? "!!" : (isBashMode ? "!" : ">");
+		const prompt = fullTheme 
+			? (isBashMode ? fgHex(fullTheme, BASH_PROMPT_COLOR, promptChar) : fullTheme.fg("accent", ">"))
+			: promptChar;
 		const promptPrefix = ` ${prompt} `;
 		const prefixWidth = visibleWidth(promptPrefix);
 		const contentWidth = Math.max(1, innerWidth - prefixWidth);
@@ -57,8 +70,17 @@ class BoxEditor extends CustomEditor {
 			? parentLines.slice(bottomBorderIndex + 1)
 			: [];
 
-		const contentLines = rawContentLines.length > 0 ? rawContentLines : [""];
-		const boxedLines = contentLines.map((line, index) => {
+		// In bash mode, strip the leading '!' or '!!' from display (it's shown in the prompt)
+		let displayLines = rawContentLines.length > 0 ? [...rawContentLines] : [""];
+		if (isBashMode && displayLines[0]) {
+			if (displayLines[0].startsWith("!!")) {
+				displayLines[0] = displayLines[0].slice(2);
+			} else if (displayLines[0].startsWith("!")) {
+				displayLines[0] = displayLines[0].slice(1);
+			}
+		}
+
+		const boxedLines = displayLines.map((line, index) => {
 			const prefix = index === 0 ? promptPrefix : " ".repeat(prefixWidth);
 			const lineWidth = visibleWidth(line);
 			const padding = " ".repeat(Math.max(0, contentWidth - lineWidth));
