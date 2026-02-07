@@ -1,12 +1,15 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import { BoxEditor } from "./editor/box-editor.js";
+import { installUserMessagePrefix } from "./messages/user-prefix.js";
 import { registerToolCallTags } from "./tool-call-tags.js";
 
 export default function (pi: ExtensionAPI) {
 	registerToolCallTags(pi);
 
 	pi.on("session_start", (_event, ctx) => {
+		installUserMessagePrefix(ctx.ui.theme);
+
 		setTimeout(() => {
 			ctx.ui.setEditorComponent((tui, theme, kb) => {
 				const activeTheme = ctx.ui.theme ?? theme;

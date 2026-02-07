@@ -30,6 +30,7 @@ This extension works best with the `droid` theme which has:
 - `editor/box-editor.ts` - Box editor implementation and input rendering logic
 - `ansi.ts` - Shared ANSI helpers (`stripAnsi`, `fgHex`)
 - `editor-shortcuts.ts` - Lightweight editor shortcut hook registry
+- `messages/user-prefix.ts` - Adds a muted `›` marker before user message bubbles
 - `tool-call-tags.ts` - Public export for tool tag registration
 - `tool-tags/` - Per-tool registration modules + shared tool rendering helpers
 - `package.json` - Extension manifest
