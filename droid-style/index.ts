@@ -45,9 +45,24 @@ class BoxEditor extends CustomEditor {
 		const parentLines = super.render(contentWidth);
 		if (parentLines.length === 0) return parentLines;
 
+		// Find the bottom border (last horizontal border line)
+		// The parent render structure is:
+		// - Line 0: top border
+		// - Lines 1..n-1: content lines
+		// - Line n: bottom border (if no autocomplete) OR border before autocomplete
+		// - Lines n+1..end: autocomplete dropdown (if active)
 		const bottomBorderIndex = findLastBorderIndex(parentLines);
-		const rawContentLines = parentLines.slice(1, bottomBorderIndex);
-		const autocompleteLines = parentLines.slice(bottomBorderIndex + 1);
+		
+		// Content lines are between first border and bottom border
+		// (index 1 to bottomBorderIndex - 1)
+		const rawContentLines = bottomBorderIndex > 0 
+			? parentLines.slice(1, bottomBorderIndex) 
+			: parentLines.slice(1);
+		
+		// Autocomplete lines come after the bottom border
+		const autocompleteLines = bottomBorderIndex >= 0 && bottomBorderIndex < parentLines.length - 1
+			? parentLines.slice(bottomBorderIndex + 1)
+			: [];
 
 		const contentLines = rawContentLines.length > 0 ? rawContentLines : [""];
 		const boxedLines = contentLines.map((line, index) => {
@@ -77,6 +92,13 @@ export default function (pi: ExtensionAPI) {
 		// Store reference to full theme
 		fullTheme = ctx.ui.theme;
 
+		// Set the custom editor component
 		ctx.ui.setEditorComponent((tui, theme, kb) => new BoxEditor(tui, theme, kb));
+
+		// Re-register after a tick to ensure autocomplete provider is set
+		// This is needed because pi 0.52.7+ initializes autocomplete AFTER session_start
+		setTimeout(() => {
+			ctx.ui.setEditorComponent((tui, theme, kb) => new BoxEditor(tui, theme, kb));
+		}, 0);
 	});
 }
