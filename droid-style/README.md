@@ -26,10 +26,12 @@ This extension works best with the `droid` theme which has:
 
 ## Files
 
-- `index.ts` - Entry point; installs the custom editor + registers the tool badge overrides
-- `ansi.ts` - Shared ANSI helpers (`stripAnsi`)
-- `editor-shortcuts.ts` - Lightweight editor shortcut hook registry (used by optional companion extensions)
-- `tool-call-tags.ts` - Tool overrides + badge renderers
+- `index.ts` - Entry point; wires editor + tool tag registration
+- `editor/box-editor.ts` - Box editor implementation and input rendering logic
+- `ansi.ts` - Shared ANSI helpers (`stripAnsi`, `fgHex`)
+- `editor-shortcuts.ts` - Lightweight editor shortcut hook registry
+- `tool-call-tags.ts` - Public export for tool tag registration
+- `tool-tags/` - Per-tool registration modules + shared tool rendering helpers
 - `package.json` - Extension manifest
 
 ## Companion extension
