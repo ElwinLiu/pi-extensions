@@ -11,17 +11,17 @@ let fullTheme: any = null;
 // Light gray border for the input box
 const INPUT_BORDER_COLOR = "#c0c0c0";
 
-// Check if a line is a border-only line (just ─ characters)
+// Check if a line is a border-only line (just ─ characters or empty)
 function isBorderLine(line: string): boolean {
 	const clean = stripAnsi(line).replace(/\s/g, "");
-	return clean === "" || clean.replace(/─/g, "") === "";
+	return clean.replace(/─/g, "") === "";
 }
 
 function findLastBorderIndex(lines: string[]): number {
-	for (let i = lines.length - 1; i >= 0; i -= 1) {
+	for (let i = lines.length - 1; i >= 0; i--) {
 		if (isBorderLine(lines[i] ?? "")) return i;
 	}
-	return Math.max(0, lines.length - 1);
+	return -1;
 }
 
 class BoxEditor extends CustomEditor {
@@ -45,22 +45,15 @@ class BoxEditor extends CustomEditor {
 		const parentLines = super.render(contentWidth);
 		if (parentLines.length === 0) return parentLines;
 
-		// Find the bottom border (last horizontal border line)
-		// The parent render structure is:
-		// - Line 0: top border
-		// - Lines 1..n-1: content lines
-		// - Line n: bottom border (if no autocomplete) OR border before autocomplete
-		// - Lines n+1..end: autocomplete dropdown (if active)
 		const bottomBorderIndex = findLastBorderIndex(parentLines);
 		
-		// Content lines are between first border and bottom border
-		// (index 1 to bottomBorderIndex - 1)
+		// Content lines are between top border (index 0) and bottom border
 		const rawContentLines = bottomBorderIndex > 0 
 			? parentLines.slice(1, bottomBorderIndex) 
 			: parentLines.slice(1);
 		
 		// Autocomplete lines come after the bottom border
-		const autocompleteLines = bottomBorderIndex >= 0 && bottomBorderIndex < parentLines.length - 1
+		const autocompleteLines = bottomBorderIndex >= 0 
 			? parentLines.slice(bottomBorderIndex + 1)
 			: [];
 
@@ -85,18 +78,13 @@ class BoxEditor extends CustomEditor {
 }
 
 export default function (pi: ExtensionAPI) {
-	// Droid-style tool badges for built-in tool calls
 	registerToolCallTags(pi);
 
 	pi.on("session_start", (_event, ctx) => {
-		// Store reference to full theme
 		fullTheme = ctx.ui.theme;
 
-		// Set the custom editor component
-		ctx.ui.setEditorComponent((tui, theme, kb) => new BoxEditor(tui, theme, kb));
-
-		// Re-register after a tick to ensure autocomplete provider is set
-		// This is needed because pi 0.52.7+ initializes autocomplete AFTER session_start
+		// Defer editor creation to ensure autocomplete provider is initialized
+		// (pi 0.52.7+ initializes autocomplete after session_start)
 		setTimeout(() => {
 			ctx.ui.setEditorComponent((tui, theme, kb) => new BoxEditor(tui, theme, kb));
 		}, 0);
