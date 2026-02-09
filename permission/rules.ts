@@ -21,8 +21,8 @@ const LOW_RISK_RULES: Rule[] = [
 
 	// Git read-only operations
 	{ pattern: /^\s*git\s+(status|log|show|diff|blame|grep|rev-parse|rev-list|ls-files|ls-tree|cat-file)\b/i, reason: "read-only git" },
-	{ pattern: /^\s*git\s+branch\b(?![^\n]*\s-[dDmM])/i, reason: "read-only git branch view" },
-	{ pattern: /^\s*git\s+tag\b(?![^\n]*\s-d\b)/i, reason: "read-only git tag view" },
+	{ pattern: /^\s*git\s+branch\b(?!([^\n]*\s-[dDmM]))/i, reason: "read-only git branch view" },
+	{ pattern: /^\s*git\s+tag\b(?!([^\n]*\s-d\b))/i, reason: "read-only git tag view" },
 	{ pattern: /^\s*git\s+remote\s+-v\b/i, reason: "read-only git remote view" },
 	{ pattern: /^\s*git\s+stash\s+list\b/i, reason: "read-only git stash view" },
 
@@ -118,145 +118,38 @@ const HIGH_RISK_RULES: Rule[] = [
 	{ pattern: /\b(drop|truncate|delete|destroy|wipe)\b[^\n]*\b(table|database|schema|collection|index|prod|production|db|sensitive)\b/i, reason: "database/data destructive action" },
 ];
 
-function normalizeCommand(command: string): string {
-	return command.trim().replace(/\s+/g, " ");
-}
-
-/**
- * Split a compound command into individual commands based on shell operators.
- * Handles: &&, ||, ;, |, &, |&, and newlines
- */
-function splitCompoundCommands(command: string): string[] {
-	const normalized = normalizeCommand(command);
-	if (!normalized) return [];
-
-	// Split by common shell command separators, keeping the delimiters for context
-	// Pattern matches: &&, ||, ;, |, |&, &, and newlines
-	const parts = normalized.split(/(\s*&&\s*|\s*\|\|\s*|\s*;\s*|\s*\|&\s*|\s*\|\s*|\s*&\s*|\n)/);
-
-	// Filter out empty strings, separators, and whitespace-only parts
-	const commands: string[] = [];
-	for (const part of parts) {
-		const trimmed = part.trim();
-		if (
-			trimmed &&
-			trimmed !== "&&" &&
-			trimmed !== "||" &&
-			trimmed !== ";" &&
-			trimmed !== "|" &&
-			trimmed !== "|&" &&
-			trimmed !== "&"
-		) {
-			commands.push(trimmed);
-		}
-	}
-
-	return commands.length > 0 ? commands : [normalized];
-}
-
 /**
  * Classify a single command using the rule-based system.
+ * Returns the assessment with unknown: true if no rules match.
  */
-function classifySingleCommand(command: string): RiskAssessment {
-	const normalized = normalizeCommand(command);
+export function classifyByRules(command: string): {
+	level: "low" | "medium" | "high";
+	reason: string;
+	unknown: boolean;
+} {
+	const normalized = command.trim().replace(/\s+/g, " ");
 	if (!normalized) {
-		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
+		return { level: "low", unknown: false, reason: "empty" };
 	}
 
 	const high = HIGH_RISK_RULES.find((rule) => rule.pattern.test(normalized));
 	if (high) {
-		return { level: "high", source: "bash", operation: normalized, unknown: false, reason: high.reason };
+		return { level: "high", unknown: false, reason: high.reason };
 	}
 
 	const medium = MEDIUM_RISK_RULES.find((rule) => rule.pattern.test(normalized));
 	if (medium) {
-		return { level: "medium", source: "bash", operation: normalized, unknown: false, reason: medium.reason };
+		return { level: "medium", unknown: false, reason: medium.reason };
 	}
 
 	const low = LOW_RISK_RULES.find((rule) => rule.pattern.test(normalized));
 	if (low) {
-		return { level: "low", source: "bash", operation: normalized, unknown: false, reason: low.reason };
+		return { level: "low", unknown: false, reason: low.reason };
 	}
 
 	return {
 		level: "medium",
-		source: "bash",
-		operation: normalized,
 		unknown: true,
 		reason: "unmapped command",
-	};
-}
-
-/**
- * Classify a bash command, handling compound commands by assessing each
- * sub-command individually and returning the highest risk level.
- */
-export function classifyBash(command: string): RiskAssessment {
-	const normalized = normalizeCommand(command);
-	if (!normalized) {
-		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
-	}
-
-	// Split compound commands into individual commands
-	const commands = splitCompoundCommands(command);
-
-	// If only one command, classify it directly
-	if (commands.length === 1) {
-		return classifySingleCommand(commands[0]);
-	}
-
-	// Classify each command and find the highest risk
-	const assessments = commands.map((cmd) => classifySingleCommand(cmd));
-
-	// Find highest risk level (high > medium > low)
-	// When risk levels are equal, prefer "known" over "unknown"
-	let highestRisk: RiskAssessment | undefined;
-	let hasUnknown = false;
-
-	const levelPriority = { high: 3, medium: 2, low: 1 } as const;
-
-	for (const assessment of assessments) {
-		if (assessment.unknown) {
-			hasUnknown = true;
-		}
-
-		if (!highestRisk) {
-			highestRisk = assessment;
-			continue;
-		}
-
-		const currentPriority = levelPriority[assessment.level];
-		const highestPriority = levelPriority[highestRisk.level];
-
-		// Prefer higher risk level
-		if (currentPriority > highestPriority) {
-			highestRisk = assessment;
-		} else if (currentPriority === highestPriority) {
-			// Same risk level: prefer known over unknown
-			if (!assessment.unknown && highestRisk.unknown) {
-				highestRisk = assessment;
-			}
-		}
-	}
-
-	if (!highestRisk) {
-		return {
-			level: "medium",
-			source: "bash",
-			operation: normalized,
-			unknown: true,
-			reason: "compound command assessment failed",
-		};
-	}
-
-	// Build a compound reason showing all commands and their risk levels
-	const reasons = assessments.map((a) => `${a.operation.substring(0, 30)}${a.operation.length > 30 ? "..." : ""}(${a.level})`).join("; ");
-
-	return {
-		level: highestRisk.level,
-		source: "bash",
-		operation: normalized,
-		unknown: hasUnknown,
-		reason: `compound: ${reasons}`,
 	};
 }

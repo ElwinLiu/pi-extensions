@@ -12,7 +12,7 @@ const AI_CLASSIFIER_SYSTEM_PROMPT = [
 	"- high: security-sensitive, destructive, privileged, remote-mutating, or hard-to-reverse actions.",
 	"Rules:",
 	"- If uncertain, pick the HIGHER risk.",
-	"- Return JSON only: {\"level\":\"low|medium|high\",\"reason\":\"short reason\"}",
+	"- Return JSON only: {\"level\":\"low|medium|high\"}",
 ].join("\n");
 
 const AI_HISTORY_ESCALATOR_SYSTEM_PROMPT = [
@@ -23,7 +23,7 @@ const AI_HISTORY_ESCALATOR_SYSTEM_PROMPT = [
 	"- Never return a level lower than base_level.",
 	"- Escalate when context suggests sensitive targets (prod, secrets, destructive intent, remote impact, privilege/security impact).",
 	"- If uncertain, keep base_level or escalate higher.",
-	"- Return JSON only: {\"level\":\"low|medium|high\",\"reason\":\"short reason\"}",
+	"- Return JSON only: {\"level\":\"low|medium|high\"}",
 ].join("\n");
 
 const AI_CLASSIFIER_CACHE_LIMIT = 500;
@@ -37,16 +37,12 @@ function truncateForPrompt(value: string, maxLength = 1200): string {
 
 function coerceAiRiskClassification(value: unknown): AiRiskClassification | undefined {
 	if (!value || typeof value !== "object") return undefined;
-	const record = value as { level?: unknown; reason?: unknown };
+	const record = value as { level?: unknown };
 	const level = typeof record.level === "string" ? record.level.toLowerCase() : "";
 	if (!isRiskLevel(level)) {
 		return undefined;
 	}
-	const reason = typeof record.reason === "string" && record.reason.trim().length > 0 ? record.reason.trim() : "ai-classified";
-	return {
-		level,
-		reason,
-	};
+	return { level };
 }
 
 function parseAiRiskClassification(raw: string): AiRiskClassification | undefined {
@@ -170,7 +166,7 @@ export class AiRiskAssessor {
 				...assessment,
 				level: cached.level,
 				unknown: false,
-				reason: `ai:${cached.reason}`,
+				reason: "ai-classified",
 			};
 		}
 
@@ -197,7 +193,7 @@ export class AiRiskAssessor {
 			...assessment,
 			level: classified.level,
 			unknown: false,
-			reason: `ai:${classified.reason}`,
+			reason: "ai-classified",
 		};
 	}
 
@@ -234,7 +230,7 @@ export class AiRiskAssessor {
 		return {
 			...assessment,
 			level: finalLevel,
-			reason: `history:${escalated.reason}`,
+			reason: "history-escalated",
 		};
 	}
 

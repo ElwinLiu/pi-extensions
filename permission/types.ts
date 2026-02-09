@@ -16,7 +16,6 @@ export type RiskAssessment = {
 
 export type AiRiskClassification = {
 	level: RiskLevel;
-	reason: string;
 };
 
 export const LEVEL_ORDER = {

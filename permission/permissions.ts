@@ -1,9 +1,8 @@
-import type { ExtensionAPI, ExtensionContext, UserBashEventResult } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
 import { AiRiskAssessor } from "./ai-risk.js";
 import { PermissionLevelStore } from "./level-store.js";
-import { classifyBash } from "./rules.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { SELECTOR_DESCRIPTIONS } from "./ui.js";
 import { isRiskLevel, LEVELS } from "./types.js";
@@ -84,22 +83,4 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 		return { block: true, reason: decision.reason ?? "Blocked by permission policy" };
 	});
 
-	pi.on("user_bash", async (event, ctx): Promise<UserBashEventResult | undefined> => {
-		levelStore.setLatestContext(ctx);
-		const assessed = {
-			...classifyBash(event.command),
-			source: "user:bash",
-		};
-		const assessment = await aiRiskAssessor.refineUnknownAssessment(assessed, ctx);
-		const decision = await authorize(assessment, levelStore.current, ctx);
-		if (decision.allowed) return undefined;
-		return {
-			result: {
-				output: decision.reason ?? "Blocked by permission policy",
-				exitCode: 1,
-				cancelled: false,
-				truncated: false,
-			},
-		};
-	});
 }
