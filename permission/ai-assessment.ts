@@ -151,7 +151,7 @@ async function getClassificationFromModel(
 	}
 }
 
-export class AiImpactAssessor {
+export class AiAssessor {
 	private readonly cache = new Map<string, AiImpactClassification>();
 
 	async classifyUnknownWithAi(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {

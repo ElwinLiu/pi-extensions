@@ -41,6 +41,6 @@ Permission/impact-gate logic for controlling tool and bash execution.
 - `types.ts` - shared impact/policy types + helpers
 - `rules.ts` - regex taxonomy + bash impact classification
 - `tool-assessment.ts` - tool-call impact assessment
-- `ai-impact.ts` - AI unknown classification + history-only escalation
+- `ai-assessment.ts` - AI unknown classification + history-only escalation
 - `policy.ts` - authorization gate against current threshold
 - `ui.ts` - widget + execute prompt rendering

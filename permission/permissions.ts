@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
-import { AiImpactAssessor } from "./ai-impact.js";
+import { AiAssessor } from "./ai-assessment.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { SELECTOR_DESCRIPTIONS } from "./ui.js";
