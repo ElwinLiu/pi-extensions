@@ -69,17 +69,7 @@ function splitCompoundCommands(normalized: string): string[] {
 	return commands.length > 0 ? commands : [normalized];
 }
 
-/**
- * Classify a single bash command using rule-based classification.
- * Assumes command is already normalized.
- * Returns the highest impact level found.
- */
-function classifyBashSingle(normalized: string): ImpactAssessment {
-	if (!normalized) {
-		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
-	}
-
-	const result = classifyByRules(normalized);
+function toImpactAssessment(normalized: string, result: ReturnType<typeof classifyByRules>): ImpactAssessment {
 	return {
 		level: result.level,
 		source: "bash",
@@ -104,11 +94,11 @@ function classifyBash(command: string): ImpactAssessment {
 
 	// If only one command, classify it directly
 	if (commands.length === 1) {
-		return classifyBashSingle(commands[0]);
+		return toImpactAssessment(commands[0], classifyByRules(commands[0]));
 	}
 
 	// Classify each command and find the highest impact
-	const assessments = commands.map((cmd) => classifyBashSingle(cmd));
+	const assessments = commands.map((cmd) => toImpactAssessment(cmd, classifyByRules(cmd)));
 
 	// Find highest impact level (high > medium > low)
 	// When impact levels are equal, prefer "known" over "unknown"
