@@ -1,8 +1,8 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_ENTRY_TYPE, PERMISSION_LEVEL_FLAG } from "./constants.js";
-import { cycleLevel, DEFAULT_LEVEL, isRiskLevel } from "./types.js";
-import type { RiskLevel } from "./types.js";
+import { cycleLevel, DEFAULT_LEVEL, isImpactLevel } from "./types.js";
+import type { ImpactLevel } from "./types.js";
 import { renderPermissionWidget } from "./ui.js";
 
 export type SetPermissionLevelOptions = {
@@ -10,20 +10,20 @@ export type SetPermissionLevelOptions = {
 	notify?: boolean;
 };
 
-function normalizeRiskLevel(value: unknown): RiskLevel | undefined {
+function normalizeImpactLevel(value: unknown): ImpactLevel | undefined {
 	if (typeof value !== "string") return undefined;
 	const normalized = value.trim().toLowerCase();
-	return isRiskLevel(normalized) ? normalized : undefined;
+	return isImpactLevel(normalized) ? normalized : undefined;
 }
 
-function parsePermissionLevelFlag(pi: ExtensionAPI): RiskLevel | undefined {
+function parsePermissionLevelFlag(pi: ExtensionAPI): ImpactLevel | undefined {
 	return (
-		normalizeRiskLevel(pi.getFlag(PERMISSION_LEVEL_FLAG)) ??
-		normalizeRiskLevel(pi.getFlag(`--${PERMISSION_LEVEL_FLAG}`))
+		normalizeImpactLevel(pi.getFlag(PERMISSION_LEVEL_FLAG)) ??
+		normalizeImpactLevel(pi.getFlag(`--${PERMISSION_LEVEL_FLAG}`))
 	);
 }
 
-function parseSavedPermissionLevelEntry(entry: unknown): RiskLevel | undefined {
+function parseSavedPermissionLevelEntry(entry: unknown): ImpactLevel | undefined {
 	if (!entry || typeof entry !== "object") return undefined;
 
 	const record = entry as {
@@ -37,10 +37,10 @@ function parseSavedPermissionLevelEntry(entry: unknown): RiskLevel | undefined {
 	if (!record.data || typeof record.data !== "object") return undefined;
 
 	const data = record.data as { level?: unknown };
-	return normalizeRiskLevel(data.level);
+	return normalizeImpactLevel(data.level);
 }
 
-function loadPermissionLevelFromSession(ctx: ExtensionContext): RiskLevel | undefined {
+function loadPermissionLevelFromSession(ctx: ExtensionContext): ImpactLevel | undefined {
 	const entriesUnknown = ctx.sessionManager.getEntries() as unknown;
 	if (!Array.isArray(entriesUnknown)) return undefined;
 
@@ -53,12 +53,12 @@ function loadPermissionLevelFromSession(ctx: ExtensionContext): RiskLevel | unde
 }
 
 export class PermissionLevelStore {
-	private level: RiskLevel = DEFAULT_LEVEL;
+	private level: ImpactLevel = DEFAULT_LEVEL;
 	private latestContext: ExtensionContext | undefined;
 
 	constructor(private readonly pi: ExtensionAPI) {}
 
-	get current(): RiskLevel {
+	get current(): ImpactLevel {
 		return this.level;
 	}
 
@@ -87,7 +87,7 @@ export class PermissionLevelStore {
 		renderPermissionWidget(ctx, this.level);
 	}
 
-	set(nextLevel: RiskLevel, ctx: ExtensionContext, options?: SetPermissionLevelOptions): void {
+	set(nextLevel: ImpactLevel, ctx: ExtensionContext, options?: SetPermissionLevelOptions): void {
 		const changed = this.level !== nextLevel;
 
 		this.level = nextLevel;

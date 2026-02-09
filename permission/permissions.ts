@@ -1,14 +1,14 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
-import { AiRiskAssessor } from "./ai-risk.js";
+import { AiImpactAssessor } from "./ai-impact.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { SELECTOR_DESCRIPTIONS } from "./ui.js";
-import { isRiskLevel, LEVELS } from "./types.js";
-import type { RiskLevel } from "./types.js";
+import { isImpactLevel, LEVELS } from "./types.js";
+import type { ImpactLevel } from "./types.js";
 
-async function promptForPermissionLevel(ctx: ExtensionContext): Promise<RiskLevel | undefined> {
+async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLevel | undefined> {
 	if (!ctx.hasUI) {
 		ctx.ui.notify("Permission selector requires UI. Use /permission <low|medium|high> instead.", "error");
 		return undefined;
@@ -23,10 +23,10 @@ async function promptForPermissionLevel(ctx: ExtensionContext): Promise<RiskLeve
 
 export function registerPermissionSystem(pi: ExtensionAPI): void {
 	const levelStore = new PermissionLevelStore(pi);
-	const aiRiskAssessor = new AiRiskAssessor();
+	const aiImpactAssessor = new AiImpactAssessor();
 
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
-		description: "Max risk level auto-approved: low | medium | high",
+		description: "Max impact level auto-approved: low | medium | high",
 		type: "string",
 	});
 
@@ -49,7 +49,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 				return;
 			}
 
-			if (!isRiskLevel(value)) {
+			if (!isImpactLevel(value)) {
 				ctx.ui.notify("Usage: /permission [low|medium|high]", "error");
 				return;
 			}
@@ -71,13 +71,13 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("before_agent_start", async (event) => {
 		return {
-			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool risks are AI-classified from operation semantics; recent user intent may only escalate risk, never reduce it.`,
+			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics; recent user intent may only escalate impact, never reduce it.`,
 		};
 	});
 
 	pi.on("tool_call", async (event, ctx) => {
 		levelStore.setLatestContext(ctx);
-		const assessment = await classifyToolCall(event, ctx, aiRiskAssessor);
+		const assessment = await classifyToolCall(event, ctx, aiImpactAssessor);
 		const decision = await authorize(assessment, levelStore.current, ctx);
 		if (decision.allowed) return undefined;
 		return { block: true, reason: decision.reason ?? "Blocked by permission policy" };

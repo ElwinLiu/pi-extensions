@@ -1,7 +1,7 @@
 {
   "name": "permission",
   "version": "1.0.0",
-  "description": "Permission/risk gate extension with execute prompt",
+  "description": "Permission/impact gate extension with execute prompt",
   "main": "index.ts",
   "pi": {
     "extension": true

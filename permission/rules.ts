@@ -1,9 +1,9 @@
-import type { RiskAssessment, Rule } from "./types.js";
+import type { ImpactAssessment, Rule } from "./types.js";
 
 // Rule coverage is based on common command behavior documented by upstream/manual sources:
 // GNU coreutils (ls/rm), Git docs (push/reset), Docker docs (publish ports),
 // Kubernetes docs (kubectl apply), systemctl man page, npm lifecycle scripts, and Terraform command refs.
-const LOW_RISK_RULES: Rule[] = [
+const LOW_IMPACT_RULES: Rule[] = [
 	// Display / introspection
 	{ pattern: /^\s*(echo|printf)\b/i, reason: "display" },
 	{ pattern: /^\s*(pwd|whoami|id|groups|date|uname|hostname|uptime)\b/i, reason: "system info" },
@@ -42,12 +42,12 @@ const LOW_RISK_RULES: Rule[] = [
 	{ pattern: /^\s*terraform\s+(validate|show|plan)\b/i, reason: "infra plan/query" },
 ];
 
-const MEDIUM_RISK_RULES: Rule[] = [
+const MEDIUM_IMPACT_RULES: Rule[] = [
 	// Local file mutations (usually recoverable)
 	{ pattern: /\b(touch|mkdir|rmdir|cp|mv|ln|install)\b/i, reason: "file mutation" },
 	{ pattern: /^\s*sed\b[^\n]*\s-i\b/i, reason: "in-place file edit" },
-	{ pattern: /(^|[^<])>(?!>)/, reason: "redirect write" },
-	{ pattern: />>/, reason: "redirect append" },
+	{ pattern: /(^|[^\u003c])\u003e(?!\u003e)/, reason: "redirect write" },
+	{ pattern: /\u003e\u003e/, reason: "redirect append" },
 	{ pattern: /\btee\b/i, reason: "write via tee" },
 
 	// Git local history/index mutations (recoverable with effort)
@@ -71,7 +71,7 @@ const MEDIUM_RISK_RULES: Rule[] = [
 	{ pattern: /^\s*docker\s+(build|pull|compose\s+(up|down|build|pull)|start|stop|restart|rm|rmi|run)\b/i, reason: "container mutation" },
 ];
 
-const HIGH_RISK_RULES: Rule[] = [
+const HIGH_IMPACT_RULES: Rule[] = [
 	// Privilege escalation / identity changes
 	{ pattern: /\b(sudo|doas|su|pkexec)\b/i, reason: "elevated privileges" },
 	{ pattern: /\b(useradd|userdel|usermod|groupadd|groupdel|passwd)\b/i, reason: "identity/security mutation" },
@@ -132,17 +132,17 @@ export function classifyByRules(command: string): {
 		return { level: "low", unknown: false, reason: "empty" };
 	}
 
-	const high = HIGH_RISK_RULES.find((rule) => rule.pattern.test(normalized));
+	const high = HIGH_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
 	if (high) {
 		return { level: "high", unknown: false, reason: high.reason };
 	}
 
-	const medium = MEDIUM_RISK_RULES.find((rule) => rule.pattern.test(normalized));
+	const medium = MEDIUM_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
 	if (medium) {
 		return { level: "medium", unknown: false, reason: medium.reason };
 	}
 
-	const low = LOW_RISK_RULES.find((rule) => rule.pattern.test(normalized));
+	const low = LOW_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
 	if (low) {
 		return { level: "low", unknown: false, reason: low.reason };
 	}

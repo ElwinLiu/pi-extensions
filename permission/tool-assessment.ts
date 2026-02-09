@@ -1,10 +1,10 @@
 import type { ToolCallEvent, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import { AiRiskAssessor } from "./ai-risk.js";
+import { AiImpactAssessor } from "./ai-impact.js";
 import { classifyByRules } from "./rules.js";
 import { askUserPermission } from "./ui.js";
-import { isRiskAtMost, maxRiskLevel } from "./types.js";
-import type { RiskAssessment, RiskLevel } from "./types.js";
+import { isImpactAtMost, maxImpactLevel } from "./types.js";
+import type { ImpactAssessment, ImpactLevel } from "./types.js";
 
 const READ_ONLY_TOOLS = new Set(["read", "grep", "find", "ls"]);
 const EDIT_TOOLS = new Set(["write", "edit"]);
@@ -71,9 +71,9 @@ function splitCompoundCommands(command: string): string[] {
 
 /**
  * Classify a single bash command using rule-based classification.
- * Returns the highest risk level found.
+ * Returns the highest impact level found.
  */
-function classifyBashSingle(command: string): RiskAssessment {
+function classifyBashSingle(command: string): ImpactAssessment {
 	const normalized = normalizeCommand(command);
 	if (!normalized) {
 		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
@@ -91,9 +91,9 @@ function classifyBashSingle(command: string): RiskAssessment {
 
 /**
  * Classify a bash command, handling compound commands by assessing each
- * sub-command individually and returning the highest risk level.
+ * sub-command individually and returning the highest impact level.
  */
-function classifyBash(command: string): RiskAssessment {
+function classifyBash(command: string): ImpactAssessment {
 	const normalized = normalizeCommand(command);
 	if (!normalized) {
 		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
@@ -107,12 +107,12 @@ function classifyBash(command: string): RiskAssessment {
 		return classifyBashSingle(commands[0]);
 	}
 
-	// Classify each command and find the highest risk
+	// Classify each command and find the highest impact
 	const assessments = commands.map((cmd) => classifyBashSingle(cmd));
 
-	// Find highest risk level (high > medium > low)
-	// When risk levels are equal, prefer "known" over "unknown"
-	let highestRisk: RiskAssessment | undefined;
+	// Find highest impact level (high > medium > low)
+	// When impact levels are equal, prefer "known" over "unknown"
+	let highestImpact: ImpactAssessment | undefined;
 	let hasUnknown = false;
 
 	for (const assessment of assessments) {
@@ -120,26 +120,26 @@ function classifyBash(command: string): RiskAssessment {
 			hasUnknown = true;
 		}
 
-		if (!highestRisk) {
-			highestRisk = assessment;
+		if (!highestImpact) {
+			highestImpact = assessment;
 			continue;
 		}
 
 		const currentPriority = LEVEL_PRIORITY[assessment.level];
-		const highestPriority = LEVEL_PRIORITY[highestRisk.level];
+		const highestPriority = LEVEL_PRIORITY[highestImpact.level];
 
-		// Prefer higher risk level
+		// Prefer higher impact level
 		if (currentPriority > highestPriority) {
-			highestRisk = assessment;
+			highestImpact = assessment;
 		} else if (currentPriority === highestPriority) {
-			// Same risk level: prefer known over unknown
-			if (!assessment.unknown && highestRisk.unknown) {
-				highestRisk = assessment;
+			// Same impact level: prefer known over unknown
+			if (!assessment.unknown && highestImpact.unknown) {
+				highestImpact = assessment;
 			}
 		}
 	}
 
-	if (!highestRisk) {
+	if (!highestImpact) {
 		return {
 			level: "medium",
 			source: "bash",
@@ -149,13 +149,13 @@ function classifyBash(command: string): RiskAssessment {
 		};
 	}
 
-	// Build a compound reason showing all commands and their risk levels
+	// Build a compound reason showing all commands and their impact levels
 	const reasons = assessments
 		.map((a) => `${a.operation.substring(0, 30)}${a.operation.length > 30 ? "..." : ""}(${a.level})`)
 		.join("; ");
 
 	return {
-		level: highestRisk.level,
+		level: highestImpact.level,
 		source: "bash",
 		operation: normalized,
 		unknown: hasUnknown,
@@ -170,7 +170,7 @@ function classifyBash(command: string): RiskAssessment {
  * - Splits compound commands into individual sub-commands
  * - Classifies each using rule-based matching
  * - Falls back to AI for unknown commands
- * - Returns the highest risk level found
+ * - Returns the highest impact level found
  * 
  * For other tools:
  * - Uses predefined categories (read-only, edit, unknown)
@@ -179,9 +179,9 @@ function classifyBash(command: string): RiskAssessment {
 export async function classifyToolCall(
 	event: ToolCallEvent,
 	ctx: ExtensionContext,
-	aiAssessor: AiRiskAssessor,
-): Promise<RiskAssessment> {
-	let assessment: RiskAssessment;
+	aiAssessor: AiImpactAssessor,
+): Promise<ImpactAssessment> {
+	let assessment: ImpactAssessment;
 
 	if (event.toolName === "bash") {
 		const command = getStringProp(event.input, "command") ?? "";
@@ -227,22 +227,22 @@ export async function classifyToolCall(
 	}
 
 	// Apply history-based escalation for known operations
-	return aiAssessor.escalateRiskWithHistory(assessment, ctx);
+	return aiAssessor.escalateImpactWithHistory(assessment, ctx);
 }
 
 export async function authorize(
-	assessment: RiskAssessment,
-	level: RiskLevel,
+	assessment: ImpactAssessment,
+	level: ImpactLevel,
 	ctx: ExtensionContext,
 ): Promise<{ allowed: boolean; reason?: string }> {
-	const thresholdAllows = !assessment.unknown && isRiskAtMost(assessment.level, level);
+	const thresholdAllows = !assessment.unknown && isImpactAtMost(assessment.level, level);
 	if (thresholdAllows) {
 		return { allowed: true };
 	}
 
 	const baseReason = assessment.unknown
-		? "Blocked unknown-risk operation"
-		: `Blocked ${assessment.level}-risk operation`;
+		? "Blocked unknown-impact operation"
+		: `Blocked ${assessment.level}-impact operation`;
 
 	if (!ctx.hasUI) {
 		return {

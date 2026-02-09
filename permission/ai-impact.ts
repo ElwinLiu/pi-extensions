@@ -1,23 +1,23 @@
 import { complete } from "@mariozechner/pi-ai";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { isRiskLevel, maxRiskLevel } from "./types.js";
-import type { AiRiskClassification, RiskAssessment } from "./types.js";
+import { isImpactLevel, maxImpactLevel } from "./types.js";
+import type { AiImpactClassification, ImpactAssessment } from "./types.js";
 
 const AI_CLASSIFIER_SYSTEM_PROMPT = [
-	"You are a strict command risk classifier.",
-	"Classify one operation as low, medium, or high risk.",
+	"You are a strict command impact classifier.",
+	"Classify one operation as low, medium, or high impact.",
 	"Definitions:",
 	"- low: read-only inspection/query operations with no meaningful mutation.",
 	"- medium: mostly local or recoverable mutations.",
 	"- high: security-sensitive, destructive, privileged, remote-mutating, or hard-to-reverse actions.",
 	"Rules:",
-	"- If uncertain, pick the HIGHER risk.",
+	"- If uncertain, pick the HIGHER impact.",
 	"- Return JSON only: {\"level\":\"low|medium|high\"}",
 ].join("\n");
 
 const AI_HISTORY_ESCALATOR_SYSTEM_PROMPT = [
-	"You are a strict risk escalation classifier.",
-	"Given a base risk level for a command/tool operation and recent user intent context, return the FINAL risk level.",
+	"You are a strict impact escalation classifier.",
+	"Given a base impact level for a command/tool operation and recent user intent context, return the FINAL impact level.",
 	"Allowed levels: low, medium, high.",
 	"Rules:",
 	"- Never return a level lower than base_level.",
@@ -35,23 +35,23 @@ function truncateForPrompt(value: string, maxLength = 1200): string {
 	return `${value.slice(0, maxLength)}...`;
 }
 
-function coerceAiRiskClassification(value: unknown): AiRiskClassification | undefined {
+function coerceAiImpactClassification(value: unknown): AiImpactClassification | undefined {
 	if (!value || typeof value !== "object") return undefined;
 	const record = value as { level?: unknown };
 	const level = typeof record.level === "string" ? record.level.toLowerCase() : "";
-	if (!isRiskLevel(level)) {
+	if (!isImpactLevel(level)) {
 		return undefined;
 	}
 	return { level };
 }
 
-function parseAiRiskClassification(raw: string): AiRiskClassification | undefined {
+function parseAiImpactClassification(raw: string): AiImpactClassification | undefined {
 	const trimmed = raw.trim();
 	if (!trimmed) return undefined;
 
 	try {
 		const parsed = JSON.parse(trimmed);
-		const normalized = coerceAiRiskClassification(parsed);
+		const normalized = coerceAiImpactClassification(parsed);
 		if (normalized) return normalized;
 	} catch {
 		// fall through
@@ -61,7 +61,7 @@ function parseAiRiskClassification(raw: string): AiRiskClassification | undefine
 	if (!jsonBlockMatch) return undefined;
 
 	try {
-		return coerceAiRiskClassification(JSON.parse(jsonBlockMatch[0]));
+		return coerceAiImpactClassification(JSON.parse(jsonBlockMatch[0]));
 	} catch {
 		return undefined;
 	}
@@ -121,7 +121,7 @@ async function getApiAccess(ctx: ExtensionContext): Promise<{ model: NonNullable
 async function getClassificationFromModel(
 	ctx: ExtensionContext,
 	prompt: string,
-): Promise<AiRiskClassification | undefined> {
+): Promise<AiImpactClassification | undefined> {
 	const access = await getApiAccess(ctx);
 	if (!access) return undefined;
 
@@ -145,16 +145,16 @@ async function getClassificationFromModel(
 			.map((part) => part.text)
 			.join("\n");
 
-		return parseAiRiskClassification(output);
+		return parseAiImpactClassification(output);
 	} catch {
 		return undefined;
 	}
 }
 
-export class AiRiskAssessor {
-	private readonly cache = new Map<string, AiRiskClassification>();
+export class AiImpactAssessor {
+	private readonly cache = new Map<string, AiImpactClassification>();
 
-	async classifyUnknownWithAi(assessment: RiskAssessment, ctx: ExtensionContext): Promise<RiskAssessment> {
+	async classifyUnknownWithAi(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {
 		if (!assessment.unknown) {
 			return assessment;
 		}
@@ -197,7 +197,7 @@ export class AiRiskAssessor {
 		};
 	}
 
-	async escalateRiskWithHistory(assessment: RiskAssessment, ctx: ExtensionContext): Promise<RiskAssessment> {
+	async escalateImpactWithHistory(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {
 		if (assessment.unknown) {
 			return assessment;
 		}
@@ -222,7 +222,7 @@ export class AiRiskAssessor {
 			return assessment;
 		}
 
-		const finalLevel = maxRiskLevel(assessment.level, escalated.level);
+		const finalLevel = maxImpactLevel(assessment.level, escalated.level);
 		if (finalLevel === assessment.level) {
 			return assessment;
 		}
@@ -234,11 +234,11 @@ export class AiRiskAssessor {
 		};
 	}
 
-	async refineUnknownAssessment(assessment: RiskAssessment, ctx: ExtensionContext): Promise<RiskAssessment> {
+	async refineUnknownAssessment(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {
 		if (!assessment.unknown) {
 			return assessment;
 		}
 		const classified = await this.classifyUnknownWithAi(assessment, ctx);
-		return this.escalateRiskWithHistory(classified, ctx);
+		return this.escalateImpactWithHistory(classified, ctx);
 	}
 }

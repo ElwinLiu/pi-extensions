@@ -1,10 +1,10 @@
 # Permission Extension
 
-Permission/risk-gate logic for controlling tool and bash execution.
+Permission/impact-gate logic for controlling tool and bash execution.
 
 ## What it does
 
-- Registers low/medium/high risk policy for tool calls + bash
+- Registers low/medium/high impact policy for tool calls
 - Shows permission widget above the editor
 - Uses `EXECUTE` badge prompt with:
   - `Yes, allow`
@@ -16,12 +16,12 @@ Permission/risk-gate logic for controlling tool and bash execution.
   - package manager query/install/remove operations
   - docker/kubectl/helm/terraform read vs mutate operations
   - privilege escalation, firewall/system tuning, and destructive disk commands
-- For unmapped/unknown operations, asks the current model to classify risk (`low|medium|high`) from operation semantics
-- Uses recent user-intent context to re-evaluate unknown operations, but only to **escalate** risk (never reduce)
-- Enforces the user’s current permission threshold on the resulting risk level
-- Falls back to explicit user approval when unknown risk cannot be classified
+- For unmapped/unknown operations, asks the current model to classify impact (`low|medium|high`) from operation semantics
+- Uses recent user-intent context to re-evaluate unknown operations, but only to **escalate** impact (never reduce)
+- Enforces the user's current permission threshold on the resulting impact level
+- Falls back to explicit user approval when unknown impact cannot be classified
 
-## Risk level intent
+## Impact level intent
 
 - **Low**: local code edits (via tools) + read-only inspection/query commands
 - **Medium**: mostly local/recoverable mutations (builds, installs, repo mutations, non-destructive file ops)
@@ -38,9 +38,9 @@ Permission/risk-gate logic for controlling tool and bash execution.
 - `permissions.ts` - extension wiring (commands, shortcuts, event hooks)
 - `level-store.ts` - permission-level state + persistence (session entries/flags)
 - `constants.ts` - shared ids (flag + session entry type)
-- `types.ts` - shared risk/policy types + helpers
-- `rules.ts` - regex taxonomy + bash risk classification
-- `tool-assessment.ts` - tool-call risk assessment
-- `ai-risk.ts` - AI unknown classification + history-only escalation
+- `types.ts` - shared impact/policy types + helpers
+- `rules.ts` - regex taxonomy + bash impact classification
+- `tool-assessment.ts` - tool-call impact assessment
+- `ai-impact.ts` - AI unknown classification + history-only escalation
 - `policy.ts` - authorization gate against current threshold
 - `ui.ts` - widget + execute prompt rendering
