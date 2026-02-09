@@ -3,9 +3,8 @@ import type { ExtensionAPI, ExtensionContext, UserBashEventResult } from "@mario
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
 import { AiRiskAssessor } from "./ai-risk.js";
 import { PermissionLevelStore } from "./level-store.js";
-import { authorize } from "./policy.js";
 import { classifyBash } from "./rules.js";
-import { classifyToolCall } from "./tool-assessment.js";
+import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { SELECTOR_DESCRIPTIONS } from "./ui.js";
 import { isRiskLevel, LEVELS } from "./types.js";
 import type { RiskLevel } from "./types.js";
@@ -79,8 +78,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("tool_call", async (event, ctx) => {
 		levelStore.setLatestContext(ctx);
-		const assessed = classifyToolCall(event);
-		const assessment = await aiRiskAssessor.refineUnknownAssessment(assessed, ctx);
+		const assessment = await classifyToolCall(event, ctx, aiRiskAssessor);
 		const decision = await authorize(assessment, levelStore.current, ctx);
 		if (decision.allowed) return undefined;
 		return { block: true, reason: decision.reason ?? "Blocked by permission policy" };
