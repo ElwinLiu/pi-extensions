@@ -121,7 +121,42 @@ function normalizeCommand(command: string): string {
 	return command.trim().replace(/\s+/g, " ");
 }
 
-export function classifyBash(command: string): RiskAssessment {
+/**
+ * Split a compound command into individual commands based on shell operators.
+ * Handles: &&, ||, ;, |, &, |&, and newlines
+ */
+function splitCompoundCommands(command: string): string[] {
+	const normalized = normalizeCommand(command);
+	if (!normalized) return [];
+
+	// Split by common shell command separators, keeping the delimiters for context
+	// Pattern matches: &&, ||, ;, |, |&, &, and newlines
+	const parts = normalized.split(/(\s*&&\s*|\s*\|\|\s*|\s*;\s*|\s*\|&\s*|\s*\|\s*|\s*&\s*|\n)/);
+
+	// Filter out empty strings, separators, and whitespace-only parts
+	const commands: string[] = [];
+	for (const part of parts) {
+		const trimmed = part.trim();
+		if (
+			trimmed &&
+			trimmed !== "&&" &&
+			trimmed !== "||" &&
+			trimmed !== ";" &&
+			trimmed !== "|" &&
+			trimmed !== "|&" &&
+			trimmed !== "&"
+		) {
+			commands.push(trimmed);
+		}
+	}
+
+	return commands.length > 0 ? commands : [normalized];
+}
+
+/**
+ * Classify a single command using the rule-based system.
+ */
+function classifySingleCommand(command: string): RiskAssessment {
 	const normalized = normalizeCommand(command);
 	if (!normalized) {
 		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
@@ -148,5 +183,72 @@ export function classifyBash(command: string): RiskAssessment {
 		operation: normalized,
 		unknown: true,
 		reason: "unmapped command",
+	};
+}
+
+/**
+ * Classify a bash command, handling compound commands by assessing each
+ * sub-command individually and returning the highest risk level.
+ */
+export function classifyBash(command: string): RiskAssessment {
+	const normalized = normalizeCommand(command);
+	if (!normalized) {
+		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
+	}
+
+	// Split compound commands into individual commands
+	const commands = splitCompoundCommands(command);
+
+	// If only one command, classify it directly
+	if (commands.length === 1) {
+		return classifySingleCommand(commands[0]);
+	}
+
+	// Classify each command and find the highest risk
+	const assessments = commands.map((cmd) => classifySingleCommand(cmd));
+
+	// Find highest risk level (high > medium > low)
+	let highestRisk: RiskAssessment | undefined;
+	let hasUnknown = false;
+
+	for (const assessment of assessments) {
+		if (assessment.unknown) {
+			hasUnknown = true;
+		}
+
+		if (!highestRisk) {
+			highestRisk = assessment;
+			continue;
+		}
+
+		// Compare risk levels: high > medium > low
+		if (assessment.level === "high") {
+			highestRisk = assessment;
+		} else if (assessment.level === "medium" && highestRisk.level !== "high") {
+			highestRisk = assessment;
+		} else if (assessment.level === "low" && highestRisk.level !== "high" && highestRisk.level !== "medium") {
+			highestRisk = assessment;
+		}
+	}
+
+	if (!highestRisk) {
+		return {
+			level: "medium",
+			source: "bash",
+			operation: normalized,
+			unknown: true,
+			reason: "compound command assessment failed",
+		};
+	}
+
+	// Build a compound reason showing all commands and their risk levels
+	const reasons = assessments.map((a) => `${a.operation.substring(0, 30)}${a.operation.length > 30 ? "..." : ""}(${a.level})`).join("; ");
+
+	return {
+		level: highestRisk.level,
+		source: "bash",
+		operation: normalized,
+		unknown: hasUnknown,
+		reason: `compound: ${reasons}`,
 	};
 }
