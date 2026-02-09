@@ -39,10 +39,10 @@ function normalizeCommand(command: string): string {
 
 /**
  * Split a compound command into individual commands based on shell operators.
+ * Assumes command is already normalized.
  * Handles: &&, ||, ;, |, &, |&, and newlines
  */
-function splitCompoundCommands(command: string): string[] {
-	const normalized = normalizeCommand(command);
+function splitCompoundCommands(normalized: string): string[] {
 	if (!normalized) return [];
 
 	// Split by common shell command separators
@@ -71,15 +71,15 @@ function splitCompoundCommands(command: string): string[] {
 
 /**
  * Classify a single bash command using rule-based classification.
+ * Assumes command is already normalized.
  * Returns the highest impact level found.
  */
-function classifyBashSingle(command: string): ImpactAssessment {
-	const normalized = normalizeCommand(command);
+function classifyBashSingle(normalized: string): ImpactAssessment {
 	if (!normalized) {
 		return { level: "low", source: "bash", operation: "", unknown: false, reason: "empty" };
 	}
 
-	const result = classifyByRules(command);
+	const result = classifyByRules(normalized);
 	return {
 		level: result.level,
 		source: "bash",
@@ -100,7 +100,7 @@ function classifyBash(command: string): ImpactAssessment {
 	}
 
 	// Split compound commands into individual commands
-	const commands = splitCompoundCommands(command);
+	const commands = splitCompoundCommands(normalized);
 
 	// If only one command, classify it directly
 	if (commands.length === 1) {
@@ -179,7 +179,7 @@ function classifyBash(command: string): ImpactAssessment {
 export async function classifyToolCall(
 	event: ToolCallEvent,
 	ctx: ExtensionContext,
-	aiAssessor: AiImpactAssessor,
+	aiAssessor: AiAssessor,
 ): Promise<ImpactAssessment> {
 	let assessment: ImpactAssessment;
 

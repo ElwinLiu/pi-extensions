@@ -120,14 +120,14 @@ const HIGH_IMPACT_RULES: Rule[] = [
 
 /**
  * Classify a single command using the rule-based system.
+ * Assumes command is already normalized (trimmed, single spaces).
  * Returns the assessment with unknown: true if no rules match.
  */
-export function classifyByRules(command: string): {
+export function classifyByRules(normalized: string): {
 	level: "low" | "medium" | "high";
 	reason: string;
 	unknown: boolean;
 } {
-	const normalized = command.trim().replace(/\s+/g, " ");
 	if (!normalized) {
 		return { level: "low", unknown: false, reason: "empty" };
 	}

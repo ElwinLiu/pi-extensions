@@ -23,7 +23,7 @@ async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLe
 
 export function registerPermissionSystem(pi: ExtensionAPI): void {
 	const levelStore = new PermissionLevelStore(pi);
-	const aiImpactAssessor = new AiImpactAssessor();
+	const aiAssessor = new AiAssessor();
 
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
 		description: "Max impact level auto-approved: low | medium | high",
@@ -77,7 +77,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("tool_call", async (event, ctx) => {
 		levelStore.setLatestContext(ctx);
-		const assessment = await classifyToolCall(event, ctx, aiImpactAssessor);
+		const assessment = await classifyToolCall(event, ctx, aiAssessor);
 		const decision = await authorize(assessment, levelStore.current, ctx);
 		if (decision.allowed) return undefined;
 		return { block: true, reason: decision.reason ?? "Blocked by permission policy" };
