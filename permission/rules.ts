@@ -10,6 +10,7 @@ const LOW_RISK_RULES: Rule[] = [
 	{ pattern: /^\s*(env|printenv|which|type)\b/i, reason: "environment info" },
 	{ pattern: /^\s*(ls|tree)\b/i, reason: "read-only listing" },
 	{ pattern: /^\s*(cat|less|more|head|tail|wc|stat|file)\b/i, reason: "read-only file" },
+	{ pattern: /^\s*cd\b/i, reason: "directory navigation" },
 	{ pattern: /^\s*sed\b(?![^\n]*\s-i\b)/i, reason: "text processing" },
 	{ pattern: /^\s*(grep|egrep|fgrep|awk|cut|sort|uniq|tr|column|nl)\b/i, reason: "text processing" },
 	{ pattern: /^(?!.*\b(delete|exec|ok)\b)\s*find\b/i, reason: "file discovery" },
@@ -208,8 +209,11 @@ export function classifyBash(command: string): RiskAssessment {
 	const assessments = commands.map((cmd) => classifySingleCommand(cmd));
 
 	// Find highest risk level (high > medium > low)
+	// When risk levels are equal, prefer "known" over "unknown"
 	let highestRisk: RiskAssessment | undefined;
 	let hasUnknown = false;
+
+	const levelPriority = { high: 3, medium: 2, low: 1 } as const;
 
 	for (const assessment of assessments) {
 		if (assessment.unknown) {
@@ -221,13 +225,17 @@ export function classifyBash(command: string): RiskAssessment {
 			continue;
 		}
 
-		// Compare risk levels: high > medium > low
-		if (assessment.level === "high") {
+		const currentPriority = levelPriority[assessment.level];
+		const highestPriority = levelPriority[highestRisk.level];
+
+		// Prefer higher risk level
+		if (currentPriority > highestPriority) {
 			highestRisk = assessment;
-		} else if (assessment.level === "medium" && highestRisk.level !== "high") {
-			highestRisk = assessment;
-		} else if (assessment.level === "low" && highestRisk.level !== "high" && highestRisk.level !== "medium") {
-			highestRisk = assessment;
+		} else if (currentPriority === highestPriority) {
+			// Same risk level: prefer known over unknown
+			if (!assessment.unknown && highestRisk.unknown) {
+				highestRisk = assessment;
+			}
 		}
 	}
 
