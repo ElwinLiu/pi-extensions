@@ -1,4 +1,4 @@
-import type { ImpactAssessment, Rule } from "./types.js";
+import type { Rule } from "./types.js";
 
 // Rule coverage is based on common command behavior documented by upstream/manual sources:
 // GNU coreutils (ls/rm), Git docs (push/reset), Docker docs (publish ports),
@@ -13,7 +13,7 @@ const LOW_IMPACT_RULES: Rule[] = [
 	{ pattern: /^\s*cd\b/i, reason: "directory navigation" },
 	{ pattern: /^\s*sed\b(?![^\n]*\s-i\b)/i, reason: "text processing" },
 	{ pattern: /^\s*(grep|egrep|fgrep|awk|cut|sort|uniq|tr|column|nl)\b/i, reason: "text processing" },
-	{ pattern: /^(?!.*\b(delete|exec|ok)\b)\s*find\b/i, reason: "file discovery" },
+	{ pattern: /^\s*find\b(?![^\n]*\s-(delete|exec|execdir|ok|okdir)\b)/i, reason: "file discovery" },
 
 	// Process, network, resource inspection
 	{ pattern: /^\s*(ps|top|htop|pgrep|pstree|lsof|ss|netstat|df|du|free|vmstat|iostat|dmesg)\b/i, reason: "runtime inspection" },
@@ -54,7 +54,7 @@ const MEDIUM_IMPACT_RULES: Rule[] = [
 	{ pattern: /^\s*git\s+(add|restore|checkout|switch|commit|merge|rebase|cherry-pick|revert|pull|fetch|stash(?!\s+list\b))\b/i, reason: "git mutation" },
 
 	// Language/package ecosystem mutations
-	{ pattern: /^\s*(npm|pnpm|yarn)\s+(install|add|update|upgrade|remove|uninstall|ci)\b/i, reason: "package mutation" },
+	{ pattern: /^\s*(npm|pnpm|yarn)\s+(install|add|update|upgrade|remove|rm|uninstall|ci)\b/i, reason: "package mutation" },
 	{ pattern: /^\s*npx\b/i, reason: "one-off package/script execution" },
 	{ pattern: /^\s*(pip|pip3)\s+(install|uninstall)\b/i, reason: "package mutation" },
 	{ pattern: /^\s*(cargo|go|gem|bundle|poetry|uv)\s+(install|add|get|update|remove|sync)\b/i, reason: "package/toolchain mutation" },
@@ -77,7 +77,7 @@ const HIGH_IMPACT_RULES: Rule[] = [
 	{ pattern: /\b(useradd|userdel|usermod|groupadd|groupdel|passwd)\b/i, reason: "identity/security mutation" },
 
 	// Irreversible/destructive filesystem & disk actions
-	{ pattern: /\brm\b/i, reason: "destructive delete" },
+	{ pattern: /(^\s*rm\b|\bxargs\b[^\n]*\brm\b)/i, reason: "destructive delete" },
 	{ pattern: /\b(shred|wipefs|mkfs(?:\.\w+)?|fdisk|parted|sgdisk)\b/i, reason: "disk/filesystem destructive action" },
 	{ pattern: /\bdd\b[^\n]*\bof=\/dev\//i, reason: "raw disk write" },
 	{ pattern: /\btruncate\b/i, reason: "destructive truncate" },
@@ -118,6 +118,12 @@ const HIGH_IMPACT_RULES: Rule[] = [
 	{ pattern: /\b(drop|truncate|delete|destroy|wipe)\b[^\n]*\b(table|database|schema|collection|index|prod|production|db|sensitive)\b/i, reason: "database/data destructive action" },
 ];
 
+const PRIORITIZED_RULESETS = [
+	{ level: "high", rules: HIGH_IMPACT_RULES },
+	{ level: "medium", rules: MEDIUM_IMPACT_RULES },
+	{ level: "low", rules: LOW_IMPACT_RULES },
+] as const;
+
 /**
  * Classify a single command using the rule-based system.
  * Assumes command is already normalized (trimmed, single spaces).
@@ -132,19 +138,12 @@ export function classifyByRules(normalized: string): {
 		return { level: "low", unknown: false, reason: "empty" };
 	}
 
-	const high = HIGH_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
-	if (high) {
-		return { level: "high", unknown: false, reason: high.reason };
-	}
-
-	const medium = MEDIUM_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
-	if (medium) {
-		return { level: "medium", unknown: false, reason: medium.reason };
-	}
-
-	const low = LOW_IMPACT_RULES.find((rule) => rule.pattern.test(normalized));
-	if (low) {
-		return { level: "low", unknown: false, reason: low.reason };
+	for (const ruleset of PRIORITIZED_RULESETS) {
+		for (const rule of ruleset.rules) {
+			if (rule.pattern.test(normalized)) {
+				return { level: ruleset.level, unknown: false, reason: rule.reason };
+			}
+		}
 	}
 
 	return {

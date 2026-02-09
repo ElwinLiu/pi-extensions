@@ -19,7 +19,7 @@ Permission/impact-gate logic for controlling tool and bash execution.
 - For unmapped/unknown operations, asks the current model to classify impact (`low|medium|high`) from operation semantics
 - Uses recent user-intent context to re-evaluate unknown operations, but only to **escalate** impact (never reduce)
 - Enforces the user's current permission threshold on the resulting impact level
-- Falls back to explicit user approval when unknown impact cannot be classified
+- If AI classification is unavailable, defaults unknown operations to **high** impact (never unknown)
 
 ## Impact level intent
 
@@ -40,7 +40,6 @@ Permission/impact-gate logic for controlling tool and bash execution.
 - `constants.ts` - shared ids (flag + session entry type)
 - `types.ts` - shared impact/policy types + helpers
 - `rules.ts` - regex taxonomy + bash impact classification
-- `tool-assessment.ts` - tool-call impact assessment
+- `tool-assessment.ts` - tool-call impact assessment + authorization gate
 - `ai-assessment.ts` - AI unknown classification + history-only escalation
-- `policy.ts` - authorization gate against current threshold
 - `ui.ts` - widget + execute prompt rendering

@@ -71,7 +71,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("before_agent_start", async (event) => {
 		return {
-			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics; recent user intent may only escalate impact, never reduce it.`,
+			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics and conversation intent.`,
 		};
 	});
 
