@@ -1,12 +1,11 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import { fgHex } from "@mariozechner/pi-ui";
 import type { ImpactAssessment, ImpactLevel } from "./types.js";
 
-const COLORS = {
-	low: "#4ade80",
-	medium: "#fbbf24",
-	high: "#f87171",
+const THEME_COLORS = {
+	low: "success",
+	medium: "warning",
+	high: "error",
 } satisfies Record<ImpactLevel, string>;
 
 const LABELS = {
@@ -22,15 +21,20 @@ export const SELECTOR_DESCRIPTIONS = {
 } satisfies Record<ImpactLevel, string>;
 
 export function renderPermissionWidget(ctx: ExtensionContext, level: ImpactLevel): void {
-	const color = COLORS[level];
+	const theme = ctx.ui.theme;
+	const colorName = THEME_COLORS[level];
 	const text = LABELS[level];
-	ctx.ui.setWidget("permission-level", [fgHex(ctx.ui.theme, color, text)], { placement: "aboveEditor" });
+	const coloredText = theme ? theme.fg(colorName, text) : text;
+	ctx.ui.setWidget("permission-level", [coloredText], { placement: "aboveEditor" });
 }
 
 function renderExecuteLine(ctx: ExtensionContext, assessment: ImpactAssessment): string {
 	const icon = assessment.level === "high" ? "⚠️" : assessment.level === "medium" ? "⚡" : "✓";
-	const color = COLORS[assessment.level];
-	return `${icon} ${assessment.operation} (${fgHex(ctx.ui.theme, color, assessment.level.toUpperCase())})`;
+	const theme = ctx.ui.theme;
+	const colorName = THEME_COLORS[assessment.level];
+	const levelText = assessment.level.toUpperCase();
+	const coloredLevel = theme ? theme.fg(colorName, levelText) : levelText;
+	return `${icon} ${assessment.operation} (${coloredLevel})`;
 }
 
 export async function askUserPermission(ctx: ExtensionContext, assessment: ImpactAssessment): Promise<boolean> {
