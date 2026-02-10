@@ -11,6 +11,8 @@ Custom “droid” look for pi:
 - Orange `>` prompt
 - Droid-style tool-call badges for built-in tools (`read`, `write`, `edit`, `ls`, `find`, `grep`, `bash`)
   - Badge background color: `#feb17f`
+- Optional cross-extension badge styling hook via event bus (`ui:badge:render`)
+  - Any extension can request droid-style badge rendering without direct imports
 
 ## Theme Settings
 

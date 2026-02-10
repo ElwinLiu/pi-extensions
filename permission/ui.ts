@@ -1,8 +1,20 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import { fgHex } from "../droid-style/ansi.js";
-import { badge } from "../droid-style/tool-tags/common.js";
 import type { ImpactAssessment, ImpactLevel } from "./types.js";
+
+type ThemeLike = {
+	inverse: (text: string) => string;
+	bold: (text: string) => string;
+	fg: (token: string, text: string) => string;
+};
+
+type PermissionBadgeRenderer = (theme: ThemeLike, label: string) => string | undefined;
+
+let badgeRenderer: PermissionBadgeRenderer | undefined;
+
+export function setPermissionBadgeRenderer(renderer: PermissionBadgeRenderer | undefined): void {
+	badgeRenderer = renderer;
+}
 
 export const PERMISSION_LABELS = {
 	low: "Perm (Low) - allow edits + read-only commands",
@@ -16,22 +28,30 @@ export const SELECTOR_DESCRIPTIONS = {
 	high: "high: allow all commands",
 } satisfies Record<ImpactLevel, string>;
 
-const PERMISSION_COLORS = {
-	low: "#ffffff",
-	medium: "#e3992b",
-	high: "#d56a26",
-} satisfies Record<ImpactLevel, string>;
+const PERMISSION_TONES = {
+	low: "text",
+	medium: "warning",
+	high: "error",
+} satisfies Record<ImpactLevel, "text" | "warning" | "error">;
+
+function defaultBadge(theme: ThemeLike, label: string): string {
+	return theme.inverse(theme.bold(` ${label} `));
+}
+
+function renderBadge(theme: ThemeLike, label: string): string {
+	return badgeRenderer?.(theme, label) ?? defaultBadge(theme, label);
+}
 
 export function renderPermissionWidget(ctx: ExtensionContext, level: ImpactLevel): void {
 	if (!ctx.hasUI) return;
 	const text = PERMISSION_LABELS[level];
-	const color = PERMISSION_COLORS[level];
-	ctx.ui.setWidget("permission-level", [fgHex(ctx.ui.theme, color, text)], { placement: "aboveEditor" });
+	const tone = PERMISSION_TONES[level];
+	ctx.ui.setWidget("permission-level", [ctx.ui.theme.fg(tone, text)], { placement: "aboveEditor" });
 }
 
 function renderExecuteLine(ctx: ExtensionContext, assessment: ImpactAssessment): string {
 	const impact = assessment.unknown ? "unknown" : assessment.level;
-	const executeTag = badge(ctx.ui.theme, "EXECUTE");
+	const executeTag = renderBadge(ctx.ui.theme as ThemeLike, "EXECUTE");
 	const detailParts = [
 		assessment.operation,
 		`impact: ${impact}`,

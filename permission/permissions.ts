@@ -4,9 +4,11 @@ import { PERMISSION_LEVEL_FLAG } from "./constants.js";
 import { AiAssessor } from "./ai-assessment.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
-import { SELECTOR_DESCRIPTIONS } from "./ui.js";
+import { SELECTOR_DESCRIPTIONS, setPermissionBadgeRenderer } from "./ui.js";
 import { isImpactLevel, LEVELS } from "./types.js";
 import type { ImpactLevel } from "./types.js";
+
+const UI_BADGE_RENDER_EVENT = "ui:badge:render" as const;
 
 async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLevel | undefined> {
 	if (!ctx.hasUI) {
@@ -24,6 +26,18 @@ async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLe
 export function registerPermissionSystem(pi: ExtensionAPI): void {
 	const levelStore = new PermissionLevelStore(pi);
 	const aiAssessor = new AiAssessor();
+
+	setPermissionBadgeRenderer((theme, label) => {
+		let rendered: string | undefined;
+		pi.events.emit(UI_BADGE_RENDER_EVENT, {
+			label,
+			theme,
+			respond: (value: string) => {
+				if (!rendered) rendered = value;
+			},
+		});
+		return rendered;
+	});
 
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
 		description: "Max impact level auto-approved: low | medium | high",

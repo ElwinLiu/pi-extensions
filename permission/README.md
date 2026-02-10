@@ -9,6 +9,7 @@ Permission/impact-gate logic for controlling tool and bash execution.
 - Uses `EXECUTE` badge prompt with:
   - `Yes, allow`
   - `No, Cancel`
+- No direct dependency on `droid-style`; optional badge styling comes from generic event-bus hook (`ui:badge:render`)
 - Wires Shift+Tab to cycle permission levels
 - Uses a broad command taxonomy across:
   - shell/coreutils read vs write/delete operations
