@@ -13,6 +13,13 @@ type PermissionBadgeRenderer = (theme: ThemeLike, label: string) => string | und
 
 let badgeRenderer: PermissionBadgeRenderer | undefined;
 
+function truncatePlain(text: string, maxWidth: number): string {
+	if (maxWidth <= 0) return "";
+	if (text.length <= maxWidth) return text;
+	if (maxWidth <= 3) return ".".repeat(maxWidth);
+	return `${text.slice(0, maxWidth - 3)}...`;
+}
+
 export function setPermissionBadgeRenderer(renderer: PermissionBadgeRenderer | undefined): void {
 	badgeRenderer = renderer;
 }
@@ -42,8 +49,35 @@ export function renderPermissionWidget(ctx: ExtensionContext, level: PermissionL
 	const config = loadConfig();
 	const text = PERMISSION_LABELS[level];
 	const tone = PERMISSION_TONES[level];
-	const shortcutHint = ctx.ui.theme.fg("dim", ` (${config.cycle_shorcut} to cycle)`);
-	ctx.ui.setWidget("permission-level", [ctx.ui.theme.fg(tone, text) + shortcutHint], { placement: "aboveEditor" });
+
+	ctx.ui.setWidget(
+		"permission-level",
+		() => ({
+			render: (width: number) => {
+				const prefix = " ";
+				const available = Math.max(0, width - prefix.length);
+				const hintPlain = ` (${config.cycle_shorcut} to cycle)`;
+
+				let basePlain = text;
+				let hintShown = hintPlain;
+
+				if (basePlain.length + hintShown.length > available) {
+					if (basePlain.length >= available) {
+						basePlain = truncatePlain(basePlain, available);
+						hintShown = "";
+					} else {
+						const remaining = available - basePlain.length;
+						hintShown = truncatePlain(hintShown, remaining);
+					}
+				}
+
+				const rendered = prefix + ctx.ui.theme.fg(tone, basePlain) + ctx.ui.theme.fg("dim", hintShown);
+				return [rendered];
+			},
+			invalidate: () => {},
+		}),
+		{ placement: "aboveEditor" },
+	);
 }
 
 function renderExecuteLine(ctx: ExtensionContext, assessment: ImpactAssessment): string {
