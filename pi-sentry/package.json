@@ -1,5 +1,5 @@
 {
-  "name": "permission",
+  "name": "pi-sentry",
   "version": "1.0.0",
   "description": "Permission/impact gate extension with execute prompt",
   "main": "index.ts",

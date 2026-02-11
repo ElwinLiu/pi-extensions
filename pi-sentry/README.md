@@ -1,6 +1,6 @@
-# Permission extension
+# pi-sentry
 
-A tools impact gating for pi. It classifies each tool call (including `bash`) as **low / medium / high** impact and blocks or prompts based on the current **permission level**.
+A tools impact gating extension for pi. It classifies each tool call (including `bash`) as **low / medium / high** impact and blocks or prompts based on the current **permission level**.
 
 ## Permission levels
 
@@ -52,5 +52,5 @@ For load-order safety, the permission extension emits `permission:ui:badge-rende
 Run the tool assessment tests:
 
 ```bash
-npx --yes tsx --test agent/extensions/permission/src/tool-assessment.test.ts
+npx --yes tsx --test agent/extensions/pi-sentry/src/tool-assessment.test.ts
 ```
