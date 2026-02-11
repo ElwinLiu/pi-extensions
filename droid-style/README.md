@@ -13,6 +13,9 @@ A "droid" look for pi:
 - Prompt styling:
   - `>` uses the current theme's accent color
   - `!` / `!!` (bash modes) use a bright green prompt
+- Slash-command autocomplete dropdown is rendered in a bordered droid-style panel
+  - selected row uses droid orange
+  - footer hint shows navigation keys and visible range
 - Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
 - Assistant responses are prefixed with `•` in `#a35626`
 - Auto-activates the `droid` theme on session start
