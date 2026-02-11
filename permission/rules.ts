@@ -129,7 +129,7 @@ const PRIORITIZED_RULESETS = [
  * Assumes command is already normalized (trimmed, single spaces).
  * Returns the assessment with unknown: true if no rules match.
  */
-export function classifyByRules(normalized: string): {
+export function classifyCommandByRules(normalized: string): {
 	level: "low" | "medium" | "high";
 	reason: string;
 	unknown: boolean;

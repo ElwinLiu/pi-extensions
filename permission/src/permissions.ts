@@ -53,7 +53,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("before_agent_start", async (event) => {
 		return {
-			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics and conversation intent. YOLO level bypasses all checks.`,
+			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash command impacts are AI-classified from operation semantics and conversation intent. Other tools use fixed mappings/rules. YOLO level bypasses all checks.`,
 		};
 	});
 

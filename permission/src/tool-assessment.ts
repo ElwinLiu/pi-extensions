@@ -1,7 +1,7 @@
 import type { ToolCallEvent, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { AiAssessor } from "./ai-assessment.js";
-import { classifyByRules } from "../rules.js";
+import { classifyCommandByRules } from "../rules.js";
 import { askUserPermission } from "./ui.js";
 import { isImpactAtMost, maxImpactLevel } from "./types.js";
 import type { ImpactAssessment, ImpactLevel, PermissionLevel } from "./types.js";
@@ -37,10 +37,6 @@ function normalizeCommand(command: string): string {
 	return command.trim().replace(/\s+/g, " ");
 }
 
-function hasCommandSeparators(normalized: string): boolean {
-	return /&&|\|\||;|\|&|\||&|\n/.test(normalized);
-}
-
 /**
  * Split a compound command into individual commands based on common shell separators.
  * Assumes command is already normalized.
@@ -53,7 +49,7 @@ function splitCompoundCommands(normalized: string): string[] {
 		.filter(Boolean);
 }
 
-function toImpactAssessment(normalized: string, result: ReturnType<typeof classifyByRules>): ImpactAssessment {
+function toImpactAssessment(normalized: string, result: ReturnType<typeof classifyCommandByRules>): ImpactAssessment {
 	return {
 		level: result.level,
 		source: BASH_SOURCE,
@@ -71,46 +67,54 @@ function pickMoreImpactful(current: ImpactAssessment, candidate: ImpactAssessmen
 	return current;
 }
 
+function summarizeAssessment(assessment: ImpactAssessment): string {
+	const operation = truncateForPrompt(assessment.operation, 30);
+	return `${operation}(${assessment.level})`;
+}
+
 /**
- * Classify a bash command and, for compound commands, return the highest impact
- * among sub-commands.
+ * Rule-only bash classification.
+ * Classifies the full command and each sub-command, then returns the highest impact.
  */
-function classifyBash(command: string): ImpactAssessment {
+function classifyBashByRules(command: string): ImpactAssessment {
 	const normalized = normalizeCommand(command);
 	if (!normalized) {
 		return { level: "low", source: BASH_SOURCE, operation: "", unknown: false, reason: "empty" };
 	}
 
-	const direct = toImpactAssessment(normalized, classifyByRules(normalized));
-	if (!hasCommandSeparators(normalized)) {
-		return direct;
+	const overallAssessment = toImpactAssessment(normalized, classifyCommandByRules(normalized));
+	const subCommands = splitCompoundCommands(normalized);
+
+	if (subCommands.length <= 1) {
+		return overallAssessment;
 	}
 
-	const commands = splitCompoundCommands(normalized);
-	if (commands.length <= 1) {
-		return direct;
+	let highestAssessment = overallAssessment;
+	const reasonParts: string[] = [`whole:${summarizeAssessment(overallAssessment)}`];
+
+	for (const subCommand of subCommands) {
+		const assessment = toImpactAssessment(subCommand, classifyCommandByRules(subCommand));
+		highestAssessment = pickMoreImpactful(highestAssessment, assessment);
+		reasonParts.push(`part:${summarizeAssessment(assessment)}`);
 	}
-
-	const assessments = commands.map((cmd) => toImpactAssessment(cmd, classifyByRules(cmd)));
-	let highest = assessments[0];
-	let hasUnknown = highest.unknown;
-
-	for (let i = 1; i < assessments.length; i += 1) {
-		const assessment = assessments[i];
-		highest = pickMoreImpactful(highest, assessment);
-		hasUnknown = hasUnknown || assessment.unknown;
-	}
-
-	const reasons = assessments
-		.map((a) => `${a.operation.substring(0, 30)}${a.operation.length > 30 ? "..." : ""}(${a.level})`)
-		.join("; ");
 
 	return {
-		...highest,
+		...highestAssessment,
 		operation: normalized,
-		unknown: hasUnknown,
-		reason: `compound: ${reasons}`,
+		unknown: highestAssessment.unknown,
+		reason: `compound: ${reasonParts.join("; ")}`,
 	};
+}
+
+/**
+ * Classify a bash command with rule-based analysis + AI fallback for unknown commands.
+ */
+async function classifyBash(command: string, ctx: ExtensionContext, aiAssessor: AiAssessor): Promise<ImpactAssessment> {
+	const ruleAssessment = classifyBashByRules(command);
+	if (!ruleAssessment.unknown) {
+		return ruleAssessment;
+	}
+	return aiAssessor.assessBashImpact(ruleAssessment, ctx);
 }
 
 /**
@@ -125,7 +129,7 @@ export async function classifyToolCall(
 
 	if (event.toolName === "bash") {
 		const command = getStringProp(event.input, "command") ?? "";
-		assessment = classifyBash(command);
+		return classifyBash(command, ctx, aiAssessor);
 	} else if (READ_ONLY_TOOLS.has(event.toolName)) {
 		assessment = {
 			level: "low",
@@ -164,11 +168,7 @@ export async function classifyToolCall(
 		};
 	}
 
-	if (!assessment.unknown) {
-		return assessment;
-	}
-
-	return aiAssessor.assessImpact(assessment, ctx);
+	return assessment;
 }
 
 export async function authorize(

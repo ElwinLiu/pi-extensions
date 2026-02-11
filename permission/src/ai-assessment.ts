@@ -5,9 +5,11 @@ import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { isImpactLevel } from "./types.js";
 import type { AiImpactClassification, ImpactAssessment } from "./types.js";
 
+const BASH_SOURCE = "agent:bash";
+
 const AI_IMPACT_ASSESSOR_USER_INSTRUCTIONS = [
 	"Permission impact assessment task.",
-	"Classify the single operation described below as low, medium, or high impact.",
+	"Classify the single bash command described below as low, medium, or high impact.",
 	"Use prior conversation messages as context for escalation (prod, secrets, destructive intent, remote impact, privilege/security impact).",
 	"Definitions:",
 	"- low: read-only inspection/query operations with no meaningful mutation.",
@@ -66,13 +68,13 @@ function buildAssessmentMessage(assessment: ImpactAssessment): Message {
 	const text = [
 		AI_IMPACT_ASSESSOR_USER_INSTRUCTIONS,
 		"",
-		"<operation>",
+		"<bash_command>",
 		`base_level_from_rules: ${assessment.level}`,
 		`unknown_from_rules: ${assessment.unknown}`,
 		`source: ${assessment.source}`,
-		`operation: ${truncateForPrompt(assessment.operation)}`,
+		`command: ${truncateForPrompt(assessment.operation)}`,
 		`previous_rule_reason: ${truncateForPrompt(assessment.reason, 600)}`,
-		"</operation>",
+		"</bash_command>",
 	].join("\n");
 
 	return {
@@ -127,8 +129,8 @@ async function getClassificationFromModel(
 }
 
 export class AiAssessor {
-	async assessImpact(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {
-		if (!assessment.unknown) {
+	async assessBashImpact(assessment: ImpactAssessment, ctx: ExtensionContext): Promise<ImpactAssessment> {
+		if (assessment.source !== BASH_SOURCE || !assessment.unknown) {
 			return assessment;
 		}
 
@@ -138,7 +140,7 @@ export class AiAssessor {
 				...assessment,
 				level: "high",
 				unknown: false,
-				reason: "ai-unavailable-default-high",
+				reason: "ai-unavailable-default-high-bash",
 			};
 		}
 
@@ -146,7 +148,7 @@ export class AiAssessor {
 			...assessment,
 			level: classified.level,
 			unknown: false,
-			reason: "ai-classified",
+			reason: "ai-classified-bash",
 		};
 	}
 }

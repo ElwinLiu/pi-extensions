@@ -35,8 +35,9 @@ Example `config.json`:
 ## How impact is determined
 
 - **Tools**: `read/ls/find/grep` are treated as low; `write/edit` are allowed at low.
-- **Bash**: rule-based classifier in `rules.ts` (handles compound commands and picks the highest impact).
-- **Unknown operations**: optionally AI-classified using conversation context; if AI is unavailable, unknowns default to **high**.
+- **Bash**: rule-based classifier in `rules.ts` (handles compound commands and picks the highest impact), with AI fallback only when a bash command is unknown.
+- **Unknown bash commands**: AI-classified using conversation context; if AI is unavailable, they default to **high**.
+- **Non-bash tools**: fixed mappings (no AI fallback).
 
 ## UI integration
 
@@ -45,3 +46,11 @@ When a decision is needed and UI is available, the extension shows an **EXECUTE*
 Optional styling hook: UI extensions can proactively register a badge renderer by emitting `permission:ui:badge-renderer:set` with `{ renderBadge(theme, label) }`.
 
 For load-order safety, the permission extension emits `permission:ui:badge-renderer:request` on startup so UI extensions can re-register.
+
+## Testing
+
+Run the tool assessment tests:
+
+```bash
+npx --yes tsx --test agent/extensions/permission/src/tool-assessment.test.ts
+```
