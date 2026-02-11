@@ -4,7 +4,7 @@ import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { fgHex, stripAnsi } from "../ansi.js";
 
 const ASSISTANT_PREFIX = "•";
-const ASSISTANT_PREFIX_COLOR = "#a35626";
+const ASSISTANT_PREFIX_COLOR = "#feb17f";
 
 let activeTheme: any = null;
 let isPatched = false;
