@@ -3,7 +3,7 @@ import { createFindTool } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 
 import { stripAnsi } from "../ansi.js";
-import { badge, getTextOutput, parens, renderLines, shortenPath } from "./common.js";
+import { badge, countLines, getTextOutput, parens, shortenPath, stripTrailingNotice } from "./common.js";
 
 export function registerFindTool(pi: ExtensionAPI): void {
 	const baseFind = createFindTool(process.cwd());
@@ -23,13 +23,23 @@ export function registerFindTool(pi: ExtensionAPI): void {
 			const detail = pattern ? `${pattern} in ${displayPath}` : displayPath;
 			return new Text(`${badge(theme, "FIND FILES")} ${parens(theme, detail)}`, 0, 0);
 		},
-		renderResult(result, options, theme: any) {
-			const output = getTextOutput(result);
-			const body = renderLines(theme, stripAnsi(output), options, {
-				maxLines: 20,
-				color: result.isError ? "error" : "toolOutput",
-			});
-			return new Text(`\n${body}`, 0, 0);
+		renderResult(result, _options, theme: any) {
+			const output = stripAnsi(getTextOutput(result)).trimEnd();
+			if (result.isError) {
+				return new Text(`\n${theme.fg("error", output || "Error")}`, 0, 0);
+			}
+
+			let fileCount = 0;
+			if (output && output !== "No files found matching pattern") {
+				const stripped = stripTrailingNotice(output);
+				fileCount =
+					typeof result.details?.truncation?.outputLines === "number"
+						? result.details.truncation.outputLines
+						: countLines(stripped);
+			}
+
+			const summary = `↳ Found ${fileCount} ${fileCount === 1 ? "file" : "files"}.`;
+			return new Text(`${theme.fg("dim", summary)}`, 0, 0);
 		},
 	});
 }

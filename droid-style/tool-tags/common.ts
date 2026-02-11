@@ -1,5 +1,4 @@
 import type { AgentToolResult, ToolRenderResultOptions } from "@mariozechner/pi-coding-agent";
-import { keyHint } from "@mariozechner/pi-coding-agent";
 import { homedir } from "node:os";
 
 import { fgHex } from "../ansi.js";
@@ -20,6 +19,23 @@ export function getTextOutput(result: AgentToolResult<any> | undefined): string 
 	if (!result?.content) return "";
 	const textBlocks = result.content.filter((contentBlock: any) => contentBlock.type === "text");
 	return textBlocks.map((contentBlock: any) => String(contentBlock.text ?? "")).join("\n").replace(/\r/g, "");
+}
+
+export function stripTrailingNotice(text: string): string {
+	const normalized = (text ?? "").replace(/\r/g, "").trimEnd();
+	if (!normalized) return "";
+	if (normalized.startsWith("[") && normalized.endsWith("]")) return "";
+	const noticeStart = normalized.lastIndexOf("\n\n[");
+	if (noticeStart >= 0 && normalized.endsWith("]")) {
+		return normalized.slice(0, noticeStart).trimEnd();
+	}
+	return normalized;
+}
+
+export function countLines(text: string): number {
+	const normalized = (text ?? "").replace(/\r/g, "").replace(/\n+$/g, "");
+	if (!normalized) return 0;
+	return normalized.split("\n").length;
 }
 
 export function badge(theme: any, label: string): string {
@@ -53,16 +69,9 @@ export function renderLines(
 
 	let output = shown.map((line) => theme.fg(color, line)).join("\n");
 	if (cfg.tail) {
-		output =
-			theme.fg("muted", `... (${remaining} earlier lines, `) +
-			keyHint("expandTools", "to expand") +
-			theme.fg("muted", ")\n") +
-			output;
+		output += theme.fg("muted", `\n... ${remaining} more lines, press Ctrl+o to expand`);
 	} else {
-		output +=
-			theme.fg("muted", `\n... (${remaining} more lines, `) +
-			keyHint("expandTools", "to expand") +
-			theme.fg("muted", ")");
+		output += theme.fg("muted", `\n... ${remaining} more lines, press Ctrl+O to expand`);
 	}
 
 	return output;

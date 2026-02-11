@@ -1,9 +1,9 @@
-import type { ExtensionAPI, ToolRenderResultOptions } from "@mariozechner/pi-coding-agent";
-import { createReadTool, getLanguageFromPath, highlightCode, keyHint } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { createReadTool } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 
 import { stripAnsi } from "../ansi.js";
-import { badge, getTextOutput, parens, replaceTabs, renderLines, shortenPath } from "./common.js";
+import { badge, countLines, getTextOutput, parens, shortenPath, stripTrailingNotice } from "./common.js";
 
 export function registerReadTool(pi: ExtensionAPI): void {
 	const baseRead = createReadTool(process.cwd());
@@ -14,12 +14,7 @@ export function registerReadTool(pi: ExtensionAPI): void {
 		parameters: baseRead.parameters,
 		async execute(toolCallId, params, signal, _onUpdate, ctx) {
 			const tool = createReadTool(ctx.cwd);
-			const result = await tool.execute(toolCallId, params as any, signal);
-			const rawPath = String((params as any)?.path ?? (params as any)?.file_path ?? "");
-			return {
-				...result,
-				details: { ...(result.details ?? {}), __path: rawPath },
-			};
+			return tool.execute(toolCallId, params as any, signal);
 		},
 		renderCall(args: any, theme: any) {
 			const rawPath = String(args?.path ?? args?.file_path ?? "");
@@ -37,41 +32,29 @@ export function registerReadTool(pi: ExtensionAPI): void {
 			const detail = path ? `${path}${range}` : "(unknown)";
 			return new Text(`${badge(theme, "READ FILE")} ${parens(theme, detail)}`, 0, 0);
 		},
-		renderResult(result: any, options: ToolRenderResultOptions, theme: any) {
-			const output = getTextOutput(result);
+		renderResult(result: any, _options, theme: any) {
+			const output = stripAnsi(getTextOutput(result)).trimEnd();
 
 			if (result.isError) {
-				const body = renderLines(theme, stripAnsi(output), options, { maxLines: 10, color: "error" });
-				return new Text(`\n${body}`, 0, 0);
+				return new Text(`${theme.fg("error", output || "Error")}`, 0, 0);
 			}
 
-			const rawPath = String(result.details?.__path ?? "");
-			const language = rawPath ? getLanguageFromPath(rawPath) : undefined;
-
-			const clean = replaceTabs(stripAnsi(output));
-			const highlighted = language ? highlightCode(clean, language) : clean.split("\n");
-			const lines = highlighted.length === 1 && highlighted[0] === "" ? [] : highlighted;
-
-			if (lines.length === 0) {
-				return new Text(`\n${theme.fg("dim", "(no output)")}`, 0, 0);
+			const imageCount = Array.isArray(result.content)
+				? result.content.filter((contentBlock: any) => contentBlock?.type === "image").length
+				: 0;
+			if (imageCount > 0) {
+				const summary = `↳ Read ${imageCount} ${imageCount === 1 ? "image" : "images"}.`;
+				return new Text(`${theme.fg("dim", summary)}`, 0, 0);
 			}
 
-			const maxLines = options.expanded ? lines.length : 10;
-			const displayLines = lines.slice(0, maxLines);
-			const remaining = lines.length - maxLines;
+			const stripped = stripTrailingNotice(output);
+			const linesRead =
+				typeof result.details?.truncation?.outputLines === "number"
+					? result.details.truncation.outputLines
+					: countLines(stripped);
 
-			let text = displayLines
-				.map((line) => (language ? line : theme.fg("toolOutput", line)))
-				.join("\n");
-
-			if (remaining > 0) {
-				text +=
-					theme.fg("muted", `\n... (${remaining} more lines, `) +
-					keyHint("expandTools", "to expand") +
-					theme.fg("muted", ")");
-			}
-
-			return new Text(text ? `\n${text}` : "", 0, 0);
+			const summary = `↳ Read ${linesRead} ${linesRead === 1 ? "line" : "lines"}.`;
+			return new Text(`${theme.fg("dim", summary)}`, 0, 0);
 		},
 	});
 }
