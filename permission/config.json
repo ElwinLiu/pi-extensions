@@ -1,4 +1,4 @@
 {
-	"shortcut": "shift+tab",
-	"description": "Cycle through permission levels (low → medium → YOLO)"
+	"cycle_shorcut": "shift+tab",
+	"level": "medium"
 }

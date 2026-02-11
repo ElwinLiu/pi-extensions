@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import { PERMISSION_LEVEL_ENTRY_TYPE, PERMISSION_LEVEL_FLAG } from "./constants.js";
+import { PERMISSION_LEVEL_FLAG } from "./constants.js";
+import { loadConfig, savePermissionLevel } from "./config-loader.js";
 import { cycleLevel, DEFAULT_LEVEL, isPermissionLevel } from "./types.js";
 import type { PermissionLevel } from "./types.js";
 import { renderPermissionWidget } from "./ui.js";
@@ -23,35 +24,6 @@ function parsePermissionLevelFlag(pi: ExtensionAPI): PermissionLevel | undefined
 	);
 }
 
-function parseSavedPermissionLevelEntry(entry: unknown): PermissionLevel | undefined {
-	if (!entry || typeof entry !== "object") return undefined;
-
-	const record = entry as {
-		type?: unknown;
-		customType?: unknown;
-		data?: unknown;
-	};
-
-	if (record.type !== "custom") return undefined;
-	if (record.customType !== PERMISSION_LEVEL_ENTRY_TYPE) return undefined;
-	if (!record.data || typeof record.data !== "object") return undefined;
-
-	const data = record.data as { level?: unknown };
-	return normalizePermissionLevel(data.level);
-}
-
-function loadPermissionLevelFromSession(ctx: ExtensionContext): PermissionLevel | undefined {
-	const entriesUnknown = ctx.sessionManager.getEntries() as unknown;
-	if (!Array.isArray(entriesUnknown)) return undefined;
-
-	for (let i = entriesUnknown.length - 1; i >= 0; i -= 1) {
-		const level = parseSavedPermissionLevelEntry(entriesUnknown[i]);
-		if (level) return level;
-	}
-
-	return undefined;
-}
-
 export class PermissionLevelStore {
 	private level: PermissionLevel = DEFAULT_LEVEL;
 	private latestContext: ExtensionContext | undefined;
@@ -67,17 +39,15 @@ export class PermissionLevelStore {
 	}
 
 	/**
-	 * Initializes the store from persisted session entries and CLI flags.
+	 * Initializes the store from config and CLI flags.
 	 *
 	 * Does not persist/notify (session start should be quiet).
 	 */
 	init(ctx: ExtensionContext): void {
 		this.latestContext = ctx;
 
-		const saved = loadPermissionLevelFromSession(ctx);
-		if (saved) {
-			this.level = saved;
-		}
+		const config = loadConfig();
+		this.level = config.level;
 
 		const fromFlag = parsePermissionLevelFlag(this.pi);
 		if (fromFlag) {
@@ -94,7 +64,10 @@ export class PermissionLevelStore {
 		this.latestContext = ctx;
 
 		if (changed && options?.persist !== false) {
-			this.pi.appendEntry(PERMISSION_LEVEL_ENTRY_TYPE, { level: nextLevel });
+			const persisted = savePermissionLevel(nextLevel);
+			if (!persisted) {
+				ctx.ui.notify("Failed to persist permission level to config.json", "error");
+			}
 		}
 
 		renderPermissionWidget(ctx, nextLevel);

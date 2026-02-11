@@ -1,4 +1,4 @@
 {
-	"shortcut": "ctrl+i",
-	"description": "Cycle through permission levels (low → medium → YOLO)"
+	"cycle_shorcut": "ctrl+i",
+	"level": "medium"
 }

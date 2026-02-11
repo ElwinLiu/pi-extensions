@@ -50,7 +50,7 @@ export function renderPermissionWidget(ctx: ExtensionContext, level: PermissionL
 	const config = loadConfig();
 	const text = PERMISSION_LABELS[level];
 	const tone = PERMISSION_TONES[level];
-	const shortcutHint = ctx.ui.theme.fg("dim", ` (${config.shortcut} to cycle)`);
+	const shortcutHint = ctx.ui.theme.fg("dim", ` (${config.cycle_shorcut} to cycle)`);
 	ctx.ui.setWidget("permission-level", [ctx.ui.theme.fg(tone, text) + shortcutHint], { placement: "aboveEditor" });
 }
 

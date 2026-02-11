@@ -1,6 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { DEFAULT_LEVEL, isPermissionLevel } from "./types.js";
+import type { PermissionLevel } from "./types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -8,35 +11,54 @@ const defaultConfigPath = join(__dirname, "..", "config.default.json");
 const userConfigPath = join(__dirname, "..", "config.json");
 
 export interface Config {
-	shortcut: string;
-	description: string;
+	cycle_shorcut: string;
+	level: PermissionLevel;
 }
 
 const DEFAULT_CONFIG: Config = {
-	shortcut: "shift+tab",
-	description: "Cycle through permission levels",
+	cycle_shorcut: "shift+tab",
+	level: DEFAULT_LEVEL,
 };
 
+function readJsonFile(path: string): Record<string, unknown> {
+	try {
+		const content = readFileSync(path, "utf-8");
+		const parsed = JSON.parse(content) as unknown;
+		return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+	} catch {
+		return {};
+	}
+}
+
+function normalizeConfig(raw: Partial<Config>): Config {
+	const level = isPermissionLevel(raw.level) ? raw.level : DEFAULT_LEVEL;
+	const cycle_shorcut =
+		typeof raw.cycle_shorcut === "string" ? raw.cycle_shorcut : DEFAULT_CONFIG.cycle_shorcut;
+	return {
+		cycle_shorcut,
+		level,
+	};
+}
+
+function loadUserOverrides(): Partial<Config> {
+	return readJsonFile(userConfigPath) as Partial<Config>;
+}
+
 export function loadConfig(): Config {
-	let config: Config = { ...DEFAULT_CONFIG };
+	const defaults = readJsonFile(defaultConfigPath) as Partial<Config>;
+	const userOverrides = loadUserOverrides();
+	return normalizeConfig({ ...DEFAULT_CONFIG, ...defaults, ...userOverrides });
+}
 
-	// Merge defaults from config.default.json
+export function savePermissionLevel(level: PermissionLevel): boolean {
+	if (!isPermissionLevel(level)) return false;
+
 	try {
-		const defaultsContent = readFileSync(defaultConfigPath, "utf-8");
-		const defaults = JSON.parse(defaultsContent) as Partial<Config>;
-		config = { ...config, ...defaults };
+		const userOverrides = loadUserOverrides();
+		const next = { ...userOverrides, level };
+		writeFileSync(userConfigPath, `${JSON.stringify(next, null, "\t")}\n`, "utf-8");
+		return true;
 	} catch {
-		// Use hardcoded defaults if file doesn't exist or is invalid
+		return false;
 	}
-
-	// Merge user overrides from config.json
-	try {
-		const userContent = readFileSync(userConfigPath, "utf-8");
-		const userOverrides = JSON.parse(userContent) as Partial<Config>;
-		config = { ...config, ...userOverrides };
-	} catch {
-		// No user config or invalid - use defaults
-	}
-
-	return config;
 }

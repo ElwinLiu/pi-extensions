@@ -11,8 +11,8 @@ A tools impact gating for pi. It classifies each tool call (including `bash`) as
 ## Usage
 
 - `/permission` — picker (UI required)
-- `/permission low|medium|YOLO` — set directly
-- Keyboard shortcut — cycle levels (configured via `config.json`)
+- `/permission low|medium|YOLO` — set directly (persists to `config.json`)
+- Keyboard shortcut — cycle levels (configured via `cycle_shorcut` in `config.json`, and persists)
 
 ## Configuration
 
@@ -24,8 +24,13 @@ Two-file merge (user overrides win):
 Example `config.json`:
 
 ```json
-{ "shortcut": "shift+tab", "description": "Cycle permission levels" }
+{
+  "cycle_shorcut": "shift+tab",
+  "level": "medium"
+}
 ```
+
+`level` defaults to `medium` and is updated when you change permission level.
 
 ## How impact is determined
 

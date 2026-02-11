@@ -83,8 +83,8 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 		},
 	});
 
-	pi.registerShortcut(config.shortcut, {
-		description: config.description,
+	pi.registerShortcut(config.cycle_shorcut, {
+		description: "Cycle through permission levels (low → medium → YOLO)",
 		handler: () => {
 			levelStore.cycle();
 		},
