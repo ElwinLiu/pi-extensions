@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import { BoxEditor } from "./editor/box-editor.js";
 import { installUserMessagePrefix } from "./messages/user-prefix.js";
-import { registerToolCallTags } from "./tool-call-tags.js";
+import { registerToolCallTags } from "./tool-tags/register-tool-call-tags.js";
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
