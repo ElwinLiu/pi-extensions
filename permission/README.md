@@ -37,4 +37,6 @@ Example `config.json`:
 
 When a decision is needed and UI is available, the extension shows an **EXECUTE** prompt (`Yes, allow` / `No, Cancel`).
 
-Optional styling hook: it emits `ui:badge:render` so other extensions (e.g. `droid-style`) can render the EXECUTE badge consistently.
+Optional styling hook: UI extensions can proactively register a badge renderer by emitting `permission:ui:badge-renderer:set` with `{ renderBadge(theme, label) }`.
+
+For load-order safety, the permission extension emits `permission:ui:badge-renderer:request` on startup so UI extensions can re-register.

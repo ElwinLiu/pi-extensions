@@ -9,7 +9,18 @@ import { isPermissionLevel, LEVELS } from "./types.js";
 import type { PermissionLevel } from "./types.js";
 import { loadConfig } from "./config-loader.js";
 
-const UI_BADGE_RENDER_EVENT = "ui:badge:render" as const;
+const PERMISSION_BADGE_RENDERER_SET_EVENT = "permission:ui:badge-renderer:set" as const;
+const PERMISSION_BADGE_RENDERER_REQUEST_EVENT = "permission:ui:badge-renderer:request" as const;
+
+type PermissionBadgeRendererPayload = {
+	renderBadge: (theme: unknown, label: string) => string | undefined;
+};
+
+function isPermissionBadgeRendererPayload(value: unknown): value is PermissionBadgeRendererPayload {
+	if (!value || typeof value !== "object") return false;
+	const record = value as Partial<PermissionBadgeRendererPayload>;
+	return typeof record.renderBadge === "function";
+}
 
 async function promptForPermissionLevel(ctx: ExtensionContext): Promise<PermissionLevel | undefined> {
 	if (!ctx.hasUI) {
@@ -29,17 +40,15 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 	const aiAssessor = new AiAssessor();
 	const config = loadConfig();
 
-	setPermissionBadgeRenderer((theme, label) => {
-		let rendered: string | undefined;
-		pi.events.emit(UI_BADGE_RENDER_EVENT, {
-			label,
-			theme,
-			respond: (value: string) => {
-				if (!rendered) rendered = value;
-			},
-		});
-		return rendered;
+	setPermissionBadgeRenderer(undefined);
+
+	pi.events.on(PERMISSION_BADGE_RENDERER_SET_EVENT, (payload) => {
+		if (!isPermissionBadgeRendererPayload(payload)) return;
+		setPermissionBadgeRenderer((theme, label) => payload.renderBadge(theme, label));
 	});
+
+	// Ask UI extensions to (re)register renderers, regardless of load order.
+	pi.events.emit(PERMISSION_BADGE_RENDERER_REQUEST_EVENT, {});
 
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
 		description: "Permission level: low | medium | YOLO",

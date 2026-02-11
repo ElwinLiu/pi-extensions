@@ -13,7 +13,6 @@ A “droid” look for pi:
   - `>` uses the current theme’s accent color
   - `!` / `!!` (bash modes) use a bright green prompt
 - Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
-- Cross-extension badge hook: listens for `ui:badge:render` and responds with the same badge style
 
 ## Installation
 
