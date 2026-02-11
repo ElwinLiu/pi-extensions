@@ -7,7 +7,8 @@ import { isImpactAtMost, maxImpactLevel } from "./types.js";
 import type { ImpactAssessment, ImpactLevel, PermissionLevel } from "./types.js";
 
 const READ_ONLY_TOOLS = new Set(["read", "grep", "find", "ls"]);
-const EDIT_TOOLS = new Set(["write", "edit"]);
+const WRITE_TOOLS = new Set(["write"]);
+const EDIT_TOOLS = new Set(["edit"]);
 const BASH_SOURCE = "agent:bash";
 
 function truncateForPrompt(value: string, maxLength = 300): string {
@@ -140,7 +141,16 @@ export async function classifyToolCall(
 			source: `agent:${event.toolName}`,
 			operation: `${event.toolName} ${path}`,
 			unknown: false,
-			reason: "edit/write tool",
+			reason: "edit tool",
+		};
+	} else if (WRITE_TOOLS.has(event.toolName)) {
+		const path = getStringProp(event.input, "path") ?? "(unknown path)";
+		assessment = {
+			level: "medium",
+			source: `agent:${event.toolName}`,
+			operation: `${event.toolName} ${path}`,
+			unknown: false,
+			reason: "write tool",
 		};
 	} else {
 		const serializedInput = serializeForOperation(event.input);
