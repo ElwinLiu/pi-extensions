@@ -1,6 +1,7 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import type { ImpactAssessment, ImpactLevel } from "./types.js";
+import { loadConfig } from "./config-loader.js";
 
 type ThemeLike = {
 	inverse: (text: string) => string;
@@ -44,9 +45,11 @@ function renderBadge(theme: ThemeLike, label: string): string {
 
 export function renderPermissionWidget(ctx: ExtensionContext, level: ImpactLevel): void {
 	if (!ctx.hasUI) return;
+	const config = loadConfig();
 	const text = PERMISSION_LABELS[level];
 	const tone = PERMISSION_TONES[level];
-	ctx.ui.setWidget("permission-level", [ctx.ui.theme.fg(tone, text)], { placement: "aboveEditor" });
+	const shortcutHint = ctx.ui.theme.fg("dim", ` (${config.shortcut} to cycle)`);
+	ctx.ui.setWidget("permission-level", [ctx.ui.theme.fg(tone, text) + shortcutHint], { placement: "aboveEditor" });
 }
 
 function renderExecuteLine(ctx: ExtensionContext, assessment: ImpactAssessment): string {
