@@ -1,0 +1,232 @@
+import { AssistantMessageComponent } from "@mariozechner/pi-coding-agent";
+import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+
+import { fgHex, stripAnsi } from "../ansi.js";
+
+const ASSISTANT_PREFIX = "•";
+const ASSISTANT_PREFIX_COLOR = "#a35626";
+
+let activeTheme: any = null;
+let isPatched = false;
+
+function buildPrefixSegment(): string {
+	return activeTheme ? fgHex(activeTheme, ASSISTANT_PREFIX_COLOR, ASSISTANT_PREFIX) : ASSISTANT_PREFIX;
+}
+
+function readAnsiToken(text: string, index: number): string | undefined {
+	if (text[index] !== "\x1b") return undefined;
+	const tail = text.slice(index);
+	// CSI sequences: \x1b[...m (colors, cursor, etc.)
+	const csi = tail.match(/^\x1b\[[0-9;?]*[ -/]*[@-~]/)?.[0];
+	if (csi) return csi;
+	// OSC sequences: \x1b]...\x07 (hyperlinks, window title, etc.)
+	const osc = tail.match(/^\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/)?.[0];
+	return osc;
+}
+
+function dropLeadingColumns(line: string, columns: number): string {
+	if (columns <= 0 || line.length === 0) return line;
+
+	let i = 0;
+	let dropped = 0;
+	let leadingAnsi = "";
+
+	while (i < line.length && dropped < columns) {
+		const ansi = readAnsiToken(line, i);
+		if (ansi) {
+			leadingAnsi += ansi;
+			i += ansi.length;
+			continue;
+		}
+
+		const codePoint = line.codePointAt(i);
+		if (codePoint === undefined) break;
+		const charLen = codePoint > 0xffff ? 2 : 1;
+		const char = line.slice(i, i + charLen);
+		i += charLen;
+		dropped += Math.max(1, visibleWidth(char));
+	}
+
+	return `${leadingAnsi}${line.slice(i)}`;
+}
+
+function startsWithVisibleSpace(line: string): boolean {
+	if (!line) return false;
+
+	let i = 0;
+	while (i < line.length) {
+		const ansi = readAnsiToken(line, i);
+		if (ansi) {
+			i += ansi.length;
+			continue;
+		}
+
+		const codePoint = line.codePointAt(i);
+		if (codePoint === undefined) return false;
+		const charLen = codePoint > 0xffff ? 2 : 1;
+		const char = line.slice(i, i + charLen);
+		return char === " ";
+	}
+
+	return false;
+}
+
+function composePrefixedLine(line: string): string {
+	const prefix = buildPrefixSegment();
+	if (!line) return `${prefix} `;
+	return startsWithVisibleSpace(line) ? `${prefix}${line}` : `${prefix} ${line}`;
+}
+
+function isVisibleTextBlock(contentBlock: any): boolean {
+	return (
+		contentBlock?.type === "text" &&
+		typeof contentBlock.text === "string" &&
+		contentBlock.text.trim().length > 0
+	);
+}
+
+function isVisibleThinkingBlock(contentBlock: any): boolean {
+	return (
+		contentBlock?.type === "thinking" &&
+		typeof contentBlock.thinking === "string" &&
+		contentBlock.thinking.trim().length > 0
+	);
+}
+
+function hasVisibleAssistantContent(contentBlocks: any[]): boolean {
+	return contentBlocks.some((contentBlock) => isVisibleTextBlock(contentBlock) || isVisibleThinkingBlock(contentBlock));
+}
+
+function isToolCallOnlyAssistantMessage(message: any): boolean {
+	if (!message || !Array.isArray(message.content)) return false;
+	const contentBlocks = message.content as any[];
+	if (hasVisibleAssistantContent(contentBlocks)) return false;
+	return contentBlocks.some((contentBlock) => contentBlock?.type === "toolCall");
+}
+
+function prefixFirstNonEmptyLine(lines: string[], width: number): string[] {
+	if (width <= 0 || lines.length === 0) return lines;
+
+	const compactPrefixBase = composePrefixedLine("");
+	const compactPrefix =
+		visibleWidth(compactPrefixBase) > width ? truncateToWidth(compactPrefixBase, width, "") : compactPrefixBase;
+	const output = [...lines];
+
+	let targetIndex = -1;
+	for (let i = 0; i < output.length; i++) {
+		const clean = stripAnsi(output[i] ?? "");
+		if (clean.trim().length > 0) {
+			targetIndex = i;
+			break;
+		}
+	}
+
+	if (targetIndex === -1) return [compactPrefix];
+
+	const remainder = dropLeadingColumns(output[targetIndex] ?? "", 1); // drop 1-column left padding from Markdown/Text
+	output[targetIndex] = composePrefixedLine(remainder);
+
+	return output.map((renderedLine) =>
+		visibleWidth(renderedLine) > width ? truncateToWidth(renderedLine, width, "") : renderedLine,
+	);
+}
+
+export function installAssistantMessagePrefix(theme: any): void {
+	activeTheme = theme;
+	if (isPatched) return;
+	isPatched = true;
+
+	const baseUpdateContent = (AssistantMessageComponent.prototype as any).updateContent;
+	if (typeof baseUpdateContent === "function") {
+		(AssistantMessageComponent.prototype as any).updateContent = function patchedAssistantUpdateContent(message: any): void {
+			baseUpdateContent.call(this, message);
+
+			if (!message || !Array.isArray(message.content)) return;
+
+			const contentBlocks = message.content as Array<any>;
+			const firstTextIndex = contentBlocks.findIndex((contentBlock) => isVisibleTextBlock(contentBlock));
+			if (firstTextIndex === -1) return;
+
+			const hasThinkingBeforeText = contentBlocks
+				.slice(0, firstTextIndex)
+				.some((contentBlock) => isVisibleThinkingBlock(contentBlock));
+			if (!hasThinkingBeforeText) return;
+
+			const hasVisibleContent = contentBlocks.some(
+				(contentBlock) => isVisibleTextBlock(contentBlock) || isVisibleThinkingBlock(contentBlock),
+			);
+			let childIndex = hasVisibleContent ? 1 : 0; // leading Spacer(1)
+			let targetChild: any = undefined;
+
+			for (let i = 0; i < contentBlocks.length; i++) {
+				const contentBlock = contentBlocks[i];
+				if (isVisibleTextBlock(contentBlock)) {
+					if (i === firstTextIndex) {
+						targetChild = this?.contentContainer?.children?.[childIndex];
+						break;
+					}
+					childIndex += 1;
+				} else if (isVisibleThinkingBlock(contentBlock)) {
+					childIndex += 1; // thinking component
+					const hasVisibleContentAfter = contentBlocks
+						.slice(i + 1)
+						.some((nextBlock) => isVisibleTextBlock(nextBlock) || isVisibleThinkingBlock(nextBlock));
+					if (hasVisibleContentAfter) childIndex += 1; // inter-block Spacer(1)
+				}
+			}
+
+			if (!targetChild || typeof targetChild.render !== "function") return;
+
+			const childState = targetChild as any;
+			if (childState.__droidAssistantResponsePrefixPatched) return;
+			childState.__droidAssistantResponsePrefixPatched = true;
+
+			const baseChildRender = targetChild.render.bind(targetChild);
+			targetChild.render = (width: number): string[] => {
+				const lines = baseChildRender(width);
+				return prefixFirstNonEmptyLine(lines, width);
+			};
+		};
+	}
+
+	const baseRender = AssistantMessageComponent.prototype.render;
+
+	AssistantMessageComponent.prototype.render = function patchedAssistantMessageRender(width: number): string[] {
+		const lines = baseRender.call(this, width);
+		if (width <= 0) return lines;
+
+		const compactPrefixBase = composePrefixedLine("");
+		const compactPrefix =
+			visibleWidth(compactPrefixBase) > width ? truncateToWidth(compactPrefixBase, width, "") : compactPrefixBase;
+
+		if (lines.length === 0) {
+			// Render standalone prefix only for finalized tool-call-only assistant turns.
+			// During normal streaming startup (before thinking/text arrives), keep empty.
+			return isToolCallOnlyAssistantMessage((this as any)?.lastMessage) ? [compactPrefix] : lines;
+		}
+
+		const output = [...lines];
+		const startIndex = lines.length > 1 ? 1 : 0; // preserve leading spacer line
+
+		let targetIndex = -1;
+		for (let i = startIndex; i < output.length; i++) {
+			const clean = stripAnsi(output[i] ?? "");
+			if (clean.trim().length > 0) {
+				targetIndex = i;
+				break;
+			}
+		}
+
+		if (targetIndex === -1) {
+			return isToolCallOnlyAssistantMessage((this as any)?.lastMessage) ? [compactPrefix] : lines;
+		}
+
+		const line = output[targetIndex] ?? "";
+		const remainder = dropLeadingColumns(line, 1); // drop the 1-column padding, keep content
+		output[targetIndex] = composePrefixedLine(remainder);
+
+		return output.map((renderedLine) =>
+			visibleWidth(renderedLine) > width ? truncateToWidth(renderedLine, width, "") : renderedLine,
+		);
+	};
+}

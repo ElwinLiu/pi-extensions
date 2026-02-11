@@ -4,6 +4,7 @@ A "droid" look for pi:
 
 - a boxed input editor
 - custom tool-call badges for the built-in tools
+- compact tool-call spacing (one blank line between consecutive calls)
 
 ## Features
 
@@ -13,6 +14,7 @@ A "droid" look for pi:
   - `>` uses the current theme's accent color
   - `!` / `!!` (bash modes) use a bright green prompt
 - Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
+- Assistant responses are prefixed with `•` in `#a35626`
 
 ## Installation
 
@@ -23,5 +25,5 @@ A "droid" look for pi:
 ## Notes
 
 - Tool badges are implemented by **overriding** the built-in tools via `pi.registerTool()` (last registration wins).
-- User message styling uses prototype patching to inject the `›` prefix.
-- This extension doesn't change chat message bubbles/tool boxes beyond tool rendering; it mainly targets the editor + tool tags.
+- Assistant/user message styling uses prototype patching to inject `•` / `›` prefixes.
+- Tool block spacing is compacted via prototype patching of `ToolExecutionComponent`.
