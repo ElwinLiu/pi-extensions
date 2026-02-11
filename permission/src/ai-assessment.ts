@@ -1,6 +1,7 @@
 import { complete, type Message } from "@mariozechner/pi-ai";
 import { buildSessionContext, convertToLlm } from "@mariozechner/pi-coding-agent";
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+
 import { isImpactLevel } from "./types.js";
 import type { AiImpactClassification, ImpactAssessment } from "./types.js";
 

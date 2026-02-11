@@ -1,4 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
 import { AiAssessor } from "./ai-assessment.js";
@@ -9,6 +12,47 @@ import { isImpactLevel, LEVELS } from "./types.js";
 import type { ImpactLevel } from "./types.js";
 
 const UI_BADGE_RENDER_EVENT = "ui:badge:render" as const;
+
+// Load config from parent directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const defaultConfigPath = join(__dirname, "..", "config.default.json");
+const userConfigPath = join(__dirname, "..", "config.json");
+
+interface Config {
+	shortcut: string;
+	description: string;
+}
+
+const DEFAULT_CONFIG: Config = {
+	shortcut: "shift+tab",
+	description: "Cycle through permission levels",
+};
+
+function loadConfig(): Config {
+	// Start with hardcoded fallback defaults
+	let config: Config = { ...DEFAULT_CONFIG };
+
+	// Merge defaults from config.default.json
+	try {
+		const defaultsContent = readFileSync(defaultConfigPath, "utf-8");
+		const defaults = JSON.parse(defaultsContent) as Partial<Config>;
+		config = { ...config, ...defaults };
+	} catch {
+		// Use hardcoded defaults if file doesn't exist or is invalid
+	}
+
+	// Merge user overrides from config.json
+	try {
+		const userContent = readFileSync(userConfigPath, "utf-8");
+		const userOverrides = JSON.parse(userContent) as Partial<Config>;
+		config = { ...config, ...userOverrides };
+	} catch {
+		// No user config or invalid - use defaults
+	}
+
+	return config;
+}
 
 async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLevel | undefined> {
 	if (!ctx.hasUI) {
@@ -26,6 +70,7 @@ async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLe
 export function registerPermissionSystem(pi: ExtensionAPI): void {
 	const levelStore = new PermissionLevelStore(pi);
 	const aiAssessor = new AiAssessor();
+	const config = loadConfig();
 
 	setPermissionBadgeRenderer((theme, label) => {
 		let rendered: string | undefined;
@@ -72,8 +117,8 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 		},
 	});
 
-	pi.registerShortcut("shift+tab", {
-		description: "Cycle permission levels",
+	pi.registerShortcut(config.shortcut, {
+		description: config.description,
 		handler: () => {
 			levelStore.cycle();
 		},
@@ -96,5 +141,4 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 		if (decision.allowed) return undefined;
 		return { block: true, reason: decision.reason ?? "Blocked by permission policy" };
 	});
-
 }

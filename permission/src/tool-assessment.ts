@@ -1,7 +1,7 @@
 import type { ToolCallEvent, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { AiAssessor } from "./ai-assessment.js";
-import { classifyByRules } from "./rules.js";
+import { classifyByRules } from "../rules.js";
 import { askUserPermission } from "./ui.js";
 import { isImpactAtMost, maxImpactLevel } from "./types.js";
 import type { ImpactAssessment, ImpactLevel } from "./types.js";

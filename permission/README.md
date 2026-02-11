@@ -2,7 +2,62 @@
 
 Permission/impact-gate logic for controlling tool and bash execution.
 
-## What it does
+## Configuration
+
+### Two-File System
+
+The extension uses a two-file configuration system:
+
+| File | Purpose | Edit? |
+|------|---------|-------|
+| `config.default.json` | Default settings shipped with the extension | No |
+| `config.json` | Your personal overrides | Yes |
+
+### How It Works
+
+1. Defaults are loaded from `config.default.json`
+2. Your overrides from `config.json` are merged on top
+3. Only specify what you want to change in `config.json`
+
+### Example: Change Shortcut
+
+Edit `config.json`:
+
+```json
+{
+  "shortcut": "ctrl+shift+p"
+}
+```
+
+Or use a different key entirely:
+
+```json
+{
+  "shortcut": "alt+p",
+  "description": "Cycle permission levels"
+}
+```
+
+### Available Options
+
+See `config.default.json` for all available options:
+
+```json
+{
+  "shortcut": "shift+tab",
+  "description": "Cycle through permission levels (low → medium → high)"
+}
+```
+
+### Valid Shortcut Formats
+
+- `shift+tab` (default)
+- `ctrl+shift+p`
+- `alt+p`
+- `ctrl+alt+1`
+- etc.
+
+## What It Does
 
 - Registers low/medium/high impact policy for tool calls
 - Shows permission widget above the editor
@@ -10,7 +65,7 @@ Permission/impact-gate logic for controlling tool and bash execution.
   - `Yes, allow`
   - `No, Cancel`
 - No direct dependency on `droid-style`; optional badge styling comes from generic event-bus hook (`ui:badge:render`)
-- Wires Shift+Tab to cycle permission levels
+- Cycles permission levels via configurable shortcut (default: `Shift+Tab`)
 - Uses a broad command taxonomy across:
   - shell/coreutils read vs write/delete operations
   - git read/local-mutate/remote-mutate operations
@@ -22,7 +77,7 @@ Permission/impact-gate logic for controlling tool and bash execution.
 - Enforces the user's current permission threshold on the resulting impact level
 - If AI classification is unavailable, defaults unknown operations to **high** impact (never unknown)
 
-## Impact level intent
+## Impact Level Intent
 
 - **Low**: local code edits (via tools) + read-only inspection/query commands
 - **Medium**: mostly local/recoverable mutations (builds, installs, repo mutations, non-destructive file ops)
@@ -32,15 +87,19 @@ Permission/impact-gate logic for controlling tool and bash execution.
 
 - `/permission` - Show permission level selector
 - `/permission [low|medium|high]` - Set permission level directly
-- `Shift+Tab` - Cycle through permission levels
+- Configured shortcut (default: `Shift+Tab`) - Cycle through permission levels
 
-## Code structure
+## Code Structure
 
-- `permissions.ts` - extension wiring (commands, shortcuts, event hooks)
-- `level-store.ts` - permission-level state + persistence (session entries/flags)
-- `constants.ts` - shared ids (flag + session entry type)
-- `types.ts` - shared impact/policy types + helpers
-- `rules.ts` - regex taxonomy + bash impact classification
-- `tool-assessment.ts` - tool-call impact assessment + authorization gate
-- `ai-assessment.ts` - AI unknown classification + history-only escalation
-- `ui.ts` - widget + execute prompt rendering
+- `index.ts` - Extension entry point
+- `config.default.json` - Default configuration (do not edit)
+- `config.json` - Your personal overrides (edit this)
+- `rules.ts` - Regex taxonomy + bash impact classification (at root, user-editable)
+- `src/`
+  - `permissions.ts` - Extension wiring (commands, shortcuts, event hooks)
+  - `level-store.ts` - Permission-level state + persistence (session entries/flags)
+  - `constants.ts` - Shared ids (flag + session entry type)
+  - `types.ts` - Shared impact/policy types + helpers
+  - `tool-assessment.ts` - Tool-call impact assessment + authorization gate
+  - `ai-assessment.ts` - AI unknown classification + history-only escalation
+  - `ui.ts` - Widget + execute prompt rendering
