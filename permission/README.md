@@ -45,7 +45,7 @@ See `config.default.json` for all available options:
 ```json
 {
   "shortcut": "shift+tab",
-  "description": "Cycle through permission levels (low → medium → high)"
+  "description": "Cycle through permission levels (low → medium → YOLO)"
 }
 ```
 
@@ -59,7 +59,7 @@ See `config.default.json` for all available options:
 
 ## What It Does
 
-- Registers low/medium/high impact policy for tool calls
+- Registers low/medium/YOLO permission levels for tool calls
 - Shows permission widget above the editor
 - Uses `EXECUTE` badge prompt with:
   - `Yes, allow`
@@ -77,17 +77,28 @@ See `config.default.json` for all available options:
 - Enforces the user's current permission threshold on the resulting impact level
 - If AI classification is unavailable, defaults unknown operations to **high** impact (never unknown)
 
-## Impact Level Intent
+## Permission Level Intent
 
 - **Low**: local code edits (via tools) + read-only inspection/query commands
 - **Medium**: mostly local/recoverable mutations (builds, installs, repo mutations, non-destructive file ops)
-- **High**: security-sensitive, remote, destructive, or irreversible operations
+- **YOLO**: bypass all permission checks - execute any command without confirmation
+
+## Command Impact Classification
+
+Commands are classified by impact level (low/medium/high) regardless of permission level:
+- **Low impact**: read-only inspection/query commands
+- **Medium impact**: local/recoverable mutations
+- **High impact**: security-sensitive, remote, destructive, or irreversible operations
 
 ## Usage
 
 - `/permission` - Show permission level selector
-- `/permission [low|medium|high]` - Set permission level directly
+- `/permission [low|medium|YOLO]` - Set permission level directly
 - Configured shortcut (default: `Shift+Tab`) - Cycle through permission levels
+
+### YOLO Mode
+
+The YOLO permission level bypasses all permission checks and allows any command to execute without confirmation. This is useful when you fully trust the AI and want maximum velocity, but use with caution as destructive operations will not be blocked.
 
 ## Code Structure
 
@@ -99,7 +110,7 @@ See `config.default.json` for all available options:
   - `permissions.ts` - Extension wiring (commands, shortcuts, event hooks)
   - `level-store.ts` - Permission-level state + persistence (session entries/flags)
   - `constants.ts` - Shared ids (flag + session entry type)
-  - `types.ts` - Shared impact/policy types + helpers
+  - `types.ts` - Shared permission/impact types + helpers (separates permission levels from impact classification)
   - `tool-assessment.ts` - Tool-call impact assessment + authorization gate
   - `ai-assessment.ts` - AI unknown classification + history-only escalation
   - `ui.ts` - Widget + execute prompt rendering

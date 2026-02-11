@@ -1,6 +1,6 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 
-import type { ImpactAssessment, ImpactLevel } from "./types.js";
+import type { ImpactAssessment, PermissionLevel } from "./types.js";
 import { loadConfig } from "./config-loader.js";
 
 type ThemeLike = {
@@ -20,20 +20,22 @@ export function setPermissionBadgeRenderer(renderer: PermissionBadgeRenderer | u
 export const PERMISSION_LABELS = {
 	low: "Perm (Low) - allow edits + read-only commands",
 	medium: "Perm (Med) - allow reversible commands",
-	high: "Perm (High) - allow all commands",
-} satisfies Record<ImpactLevel, string>;
+	YOLO: "Perm (YOLO) - bypass all commands",
+} satisfies Record<PermissionLevel, string>;
 
-export const SELECTOR_DESCRIPTIONS = {
-	low: "low: allow edits + read-only commands",
-	medium: "medium: allow reversible commands",
-	high: "high: allow all commands",
-} satisfies Record<ImpactLevel, string>;
+// Derive selector descriptions by stripping "Perm (X) - " prefix
+export const SELECTOR_DESCRIPTIONS = Object.fromEntries(
+	Object.entries(PERMISSION_LABELS).map(([level, label]) => [
+		level,
+		label.replace(/^Perm \([^)]+\) - /, ""),
+	])
+) as Record<PermissionLevel, string>;
 
 const PERMISSION_TONES = {
 	low: "text",
 	medium: "warning",
-	high: "error",
-} satisfies Record<ImpactLevel, "text" | "warning" | "error">;
+	YOLO: "error",
+} satisfies Record<PermissionLevel, "text" | "warning" | "error">;
 
 function defaultBadge(theme: ThemeLike, label: string): string {
 	return theme.inverse(theme.bold(` ${label} `));
@@ -43,7 +45,7 @@ function renderBadge(theme: ThemeLike, label: string): string {
 	return badgeRenderer?.(theme, label) ?? defaultBadge(theme, label);
 }
 
-export function renderPermissionWidget(ctx: ExtensionContext, level: ImpactLevel): void {
+export function renderPermissionWidget(ctx: ExtensionContext, level: PermissionLevel): void {
 	if (!ctx.hasUI) return;
 	const config = loadConfig();
 	const text = PERMISSION_LABELS[level];

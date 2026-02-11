@@ -4,7 +4,7 @@ import { AiAssessor } from "./ai-assessment.js";
 import { classifyByRules } from "../rules.js";
 import { askUserPermission } from "./ui.js";
 import { isImpactAtMost, maxImpactLevel } from "./types.js";
-import type { ImpactAssessment, ImpactLevel } from "./types.js";
+import type { ImpactAssessment, ImpactLevel, PermissionLevel } from "./types.js";
 
 const READ_ONLY_TOOLS = new Set(["read", "grep", "find", "ls"]);
 const EDIT_TOOLS = new Set(["write", "edit"]);
@@ -163,10 +163,12 @@ export async function classifyToolCall(
 
 export async function authorize(
 	assessment: ImpactAssessment,
-	level: ImpactLevel,
+	level: PermissionLevel,
 	ctx: ExtensionContext,
 ): Promise<{ allowed: boolean; reason?: string }> {
-	const thresholdAllows = !assessment.unknown && isImpactAtMost(assessment.level, level);
+	// Map permission level to max allowed impact level
+	const maxAllowedImpact: ImpactLevel = level === "medium" ? "medium" : "low";
+	const thresholdAllows = !assessment.unknown && isImpactAtMost(assessment.level, maxAllowedImpact);
 	if (thresholdAllows) {
 		return { allowed: true };
 	}

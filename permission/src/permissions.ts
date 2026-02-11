@@ -5,15 +5,15 @@ import { AiAssessor } from "./ai-assessment.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { SELECTOR_DESCRIPTIONS, setPermissionBadgeRenderer } from "./ui.js";
-import { isImpactLevel, LEVELS } from "./types.js";
-import type { ImpactLevel } from "./types.js";
+import { isPermissionLevel, LEVELS } from "./types.js";
+import type { PermissionLevel } from "./types.js";
 import { loadConfig } from "./config-loader.js";
 
 const UI_BADGE_RENDER_EVENT = "ui:badge:render" as const;
 
-async function promptForPermissionLevel(ctx: ExtensionContext): Promise<ImpactLevel | undefined> {
+async function promptForPermissionLevel(ctx: ExtensionContext): Promise<PermissionLevel | undefined> {
 	if (!ctx.hasUI) {
-		ctx.ui.notify("Permission selector requires UI. Use /permission <low|medium|high> instead.", "error");
+		ctx.ui.notify("Permission selector requires UI. Use /permission <low|medium|YOLO> instead.", "error");
 		return undefined;
 	}
 
@@ -42,12 +42,12 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 	});
 
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
-		description: "Max impact level auto-approved: low | medium | high",
+		description: "Permission level: low | medium | YOLO",
 		type: "string",
 	});
 
 	pi.registerCommand("permission", {
-		description: "Show or set permission level: /permission [low|medium|high]",
+		description: "Show or set permission level: /permission [low|medium|YOLO]",
 		getArgumentCompletions: (prefix) => {
 			const normalized = prefix.toLowerCase();
 			const choices = LEVELS.filter((item) => item.startsWith(normalized));
@@ -65,8 +65,8 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 				return;
 			}
 
-			if (!isImpactLevel(value)) {
-				ctx.ui.notify("Usage: /permission [low|medium|high]", "error");
+			if (!isPermissionLevel(value)) {
+				ctx.ui.notify("Usage: /permission [low|medium|YOLO]", "error");
 				return;
 			}
 
@@ -87,12 +87,18 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 
 	pi.on("before_agent_start", async (event) => {
 		return {
-			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics and conversation intent.`,
+			systemPrompt: `${event.systemPrompt}\n\nPermission policy active. Current level: ${levelStore.current.toUpperCase()}. Unknown bash/tool impacts are AI-classified from operation semantics and conversation intent. YOLO level bypasses all checks.`,
 		};
 	});
 
 	pi.on("tool_call", async (event, ctx) => {
 		levelStore.setLatestContext(ctx);
+
+		// YOLO mode: bypass all classification and authorization
+		if (levelStore.current === "YOLO") {
+			return undefined;
+		}
+
 		const assessment = await classifyToolCall(event, ctx, aiAssessor);
 		const decision = await authorize(assessment, levelStore.current, ctx);
 		if (decision.allowed) return undefined;
