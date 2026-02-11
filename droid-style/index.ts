@@ -5,9 +5,10 @@ import { installUserMessagePrefix } from "./messages/user-prefix.js";
 import { registerToolCallTags } from "./tool-call-tags.js";
 
 export default function (pi: ExtensionAPI) {
-	registerToolCallTags(pi);
-
 	pi.on("session_start", (_event, ctx) => {
+		// Register tool call tags based on currently active tools
+		registerToolCallTags(pi);
+
 		installUserMessagePrefix(ctx.ui.theme);
 
 		setTimeout(() => {

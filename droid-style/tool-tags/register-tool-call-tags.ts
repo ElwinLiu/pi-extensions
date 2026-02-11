@@ -8,12 +8,23 @@ import { registerLsTool } from "./ls.js";
 import { registerReadTool } from "./read.js";
 import { registerWriteTool } from "./write.js";
 
+const toolRegistry: Record<string, (pi: ExtensionAPI) => void> = {
+	read: registerReadTool,
+	write: registerWriteTool,
+	edit: registerEditTool,
+	ls: registerLsTool,
+	find: registerFindTool,
+	grep: registerGrepTool,
+	bash: registerBashTool,
+};
+
 export function registerToolCallTags(pi: ExtensionAPI): void {
-	registerReadTool(pi);
-	registerWriteTool(pi);
-	registerEditTool(pi);
-	registerLsTool(pi);
-	registerFindTool(pi);
-	registerGrepTool(pi);
-	registerBashTool(pi);
+	const activeTools = pi.getActiveTools();
+	const activeSet = new Set(activeTools);
+
+	for (const [name, register] of Object.entries(toolRegistry)) {
+		if (activeSet.has(name)) {
+			register(pi);
+		}
+	}
 }
