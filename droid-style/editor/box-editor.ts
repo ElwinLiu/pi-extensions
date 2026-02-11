@@ -1,8 +1,7 @@
 import { CustomEditor } from "@mariozechner/pi-coding-agent";
-import { Key, matchesKey, visibleWidth } from "@mariozechner/pi-tui";
+import { visibleWidth } from "@mariozechner/pi-tui";
 
 import { fgHex, stripAnsi } from "../ansi.js";
-import { runEditorShortcut } from "../editor-shortcuts.js";
 
 const INPUT_BORDER_COLOR = "#c0c0c0";
 const BASH_PROMPT_COLOR = "#05ff03";
@@ -33,13 +32,6 @@ export class BoxEditor extends CustomEditor {
 		private readonly fullTheme: any,
 	) {
 		super(tui, theme, kb);
-	}
-
-	handleInput(data: string): void {
-		if (matchesKey(data, Key.ctrl("l")) && runEditorShortcut("ctrl+l")) {
-			return;
-		}
-		super.handleInput(data);
 	}
 
 	render(width: number): string[] {

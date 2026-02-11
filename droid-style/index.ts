@@ -6,16 +6,11 @@ import { registerToolCallTags } from "./tool-call-tags.js";
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
-		// Register tool call tags based on currently active tools
 		registerToolCallTags(pi);
-
 		installUserMessagePrefix(ctx.ui.theme);
 
-		setTimeout(() => {
-			ctx.ui.setEditorComponent((tui, theme, kb) => {
-				const activeTheme = ctx.ui.theme ?? theme;
-				return new BoxEditor(tui, theme, kb, activeTheme);
-			});
-		}, 0);
+		ctx.ui.setEditorComponent((tui, theme, kb) => {
+			return new BoxEditor(tui, theme, kb, ctx.ui.theme ?? theme);
+		});
 	});
 }
