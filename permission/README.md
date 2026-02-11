@@ -10,9 +10,9 @@ A tools impact gating for pi. It classifies each tool call (including `bash`) as
 
 ## Usage
 
-- `/permission` — picker (UI required)
-- `/permission low|medium|YOLO` — set directly (persists to `config.json`)
 - Keyboard shortcut — cycle levels (configured via `cycle_shorcut` in `config.json`, and persists)
+- CLI flag `--permission-level <low|medium|YOLO>` — set level for the current run
+- Edit `config.json` `level` to persist a default level
 
 ## Configuration
 

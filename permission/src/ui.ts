@@ -23,14 +23,6 @@ export const PERMISSION_LABELS = {
 	YOLO: "Perm (YOLO) - bypass all commands",
 } satisfies Record<PermissionLevel, string>;
 
-// Derive selector descriptions by stripping "Perm (X) - " prefix
-export const SELECTOR_DESCRIPTIONS = Object.fromEntries(
-	Object.entries(PERMISSION_LABELS).map(([level, label]) => [
-		level,
-		label.replace(/^Perm \([^)]+\) - /, ""),
-	])
-) as Record<PermissionLevel, string>;
-
 const PERMISSION_TONES = {
 	low: "text",
 	medium: "warning",

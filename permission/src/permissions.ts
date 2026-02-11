@@ -1,12 +1,10 @@
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
 import { AiAssessor } from "./ai-assessment.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
-import { SELECTOR_DESCRIPTIONS, setPermissionBadgeRenderer } from "./ui.js";
-import { isPermissionLevel, LEVELS } from "./types.js";
-import type { PermissionLevel } from "./types.js";
+import { setPermissionBadgeRenderer } from "./ui.js";
 import { loadConfig } from "./config-loader.js";
 
 const PERMISSION_BADGE_RENDERER_SET_EVENT = "permission:ui:badge-renderer:set" as const;
@@ -20,19 +18,6 @@ function isPermissionBadgeRendererPayload(value: unknown): value is PermissionBa
 	if (!value || typeof value !== "object") return false;
 	const record = value as Partial<PermissionBadgeRendererPayload>;
 	return typeof record.renderBadge === "function";
-}
-
-async function promptForPermissionLevel(ctx: ExtensionContext): Promise<PermissionLevel | undefined> {
-	if (!ctx.hasUI) {
-		ctx.ui.notify("Permission selector requires UI. Use /permission <low|medium|YOLO> instead.", "error");
-		return undefined;
-	}
-
-	const descriptions = LEVELS.map((lvl) => SELECTOR_DESCRIPTIONS[lvl]);
-	const choice = await ctx.ui.select("Select permission level:", descriptions);
-	if (!choice) return undefined;
-
-	return LEVELS.find((lvl) => SELECTOR_DESCRIPTIONS[lvl] === choice);
 }
 
 export function registerPermissionSystem(pi: ExtensionAPI): void {
@@ -53,34 +38,6 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 	pi.registerFlag(PERMISSION_LEVEL_FLAG, {
 		description: "Permission level: low | medium | YOLO",
 		type: "string",
-	});
-
-	pi.registerCommand("permission", {
-		description: "Show or set permission level: /permission [low|medium|YOLO]",
-		getArgumentCompletions: (prefix) => {
-			const normalized = prefix.toLowerCase();
-			const choices = LEVELS.filter((item) => item.startsWith(normalized));
-			return choices.length ? choices.map((value) => ({ value, label: value })) : null;
-		},
-		handler: async (args, ctx) => {
-			levelStore.setLatestContext(ctx);
-
-			const value = args.trim().toLowerCase();
-			if (!value) {
-				const selected = await promptForPermissionLevel(ctx);
-				if (selected) {
-					levelStore.set(selected, ctx);
-				}
-				return;
-			}
-
-			if (!isPermissionLevel(value)) {
-				ctx.ui.notify("Usage: /permission [low|medium|YOLO]", "error");
-				return;
-			}
-
-			levelStore.set(value, ctx);
-		},
 	});
 
 	pi.registerShortcut(config.cycle_shorcut, {
