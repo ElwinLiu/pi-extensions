@@ -1,3 +1,5 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import { BoxEditor } from "./editor/box-editor.js";
@@ -6,12 +8,26 @@ import { installUserMessagePrefix } from "./messages/user-prefix.js";
 import { installCompactToolSpacing } from "./tool-tags/compact-tool-spacing.js";
 import { registerToolCallTags } from "./tool-tags/register-tool-call-tags.js";
 
+const baseDir = dirname(fileURLToPath(import.meta.url));
+
 export default function (pi: ExtensionAPI) {
 	installCompactToolSpacing();
 
+	pi.on("resources_discover", () => {
+		return {
+			themePaths: [join(baseDir, "themes", "droid.json")],
+		};
+	});
+
 	pi.on("session_start", (_event, ctx) => {
-		// Auto-activate the bundled droid theme (falls back to existing theme if unavailable).
-		ctx.ui.setTheme("droid");
+		// Auto-activate droid theme. resources_discover runs after session_start,
+		// so retry on next tick if the first switch fails.
+		const tryApplyTheme = () => ctx.ui.setTheme("droid").success;
+		if (!tryApplyTheme()) {
+			setTimeout(() => {
+				tryApplyTheme();
+			}, 0);
+		}
 
 		registerToolCallTags(pi);
 		installAssistantMessagePrefix(ctx.ui.theme);

@@ -20,8 +20,9 @@ A "droid" look for pi:
 ## Installation
 
 1. Copy to `~/.pi/agent/extensions/droid-style/`
-2. Ensure the `droid` theme exists (for example `~/.pi/agent/themes/droid.json`)
-3. Reload extensions (`/reload`) or restart pi
+2. Reload extensions (`/reload`) or restart pi
+
+The `droid` theme is bundled in this extension (`themes/droid.json`) and is discovered automatically.
 
 ## Notes
 
