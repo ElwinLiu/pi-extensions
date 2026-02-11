@@ -81,7 +81,7 @@ export function registerEditTool(pi: ExtensionAPI): void {
 				? renderedDiff
 				: renderLines(theme, renderedDiff, options, { maxLines: 20, color: "toolOutput" });
 
-			return new Text(`${theme.fg("dim", summary)}\n${diffText}`, 0, 0);
+			return new Text(`${theme.fg("dim", summary)}\n\n${diffText}`, 0, 0);
 		},
 	});
 }

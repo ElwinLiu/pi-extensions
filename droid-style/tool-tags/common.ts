@@ -68,11 +68,7 @@ export function renderLines(
 	const remaining = lines.length - shown.length;
 
 	let output = shown.map((line) => theme.fg(color, line)).join("\n");
-	if (cfg.tail) {
-		output += theme.fg("muted", `\n... ${remaining} more lines, press Ctrl+o to expand`);
-	} else {
-		output += theme.fg("muted", `\n... ${remaining} more lines, press Ctrl+O to expand`);
-	}
+	output += theme.fg("muted", `\n\n... ${remaining} more lines, press Ctrl+o to expand`);
 
 	return output;
 }
