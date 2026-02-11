@@ -3,9 +3,9 @@ import test from "node:test";
 
 import type { ExtensionContext, ToolCallEvent } from "@mariozechner/pi-coding-agent";
 
-import type { AiAssessor } from "./ai-assessment.js";
-import { classifyToolCall } from "./tool-assessment.js";
-import type { ImpactAssessment, ImpactLevel } from "./types.js";
+import type { AiAssessor } from "../src/ai-assessment.js";
+import { classifyToolCall } from "../src/tool-assessment.js";
+import type { ImpactAssessment, ImpactLevel } from "../src/types.js";
 
 type BashCase = {
 	name: string;
@@ -68,7 +68,7 @@ const SINGLE_COMMAND_CASES: BashCase[] = [
 	{ name: "git fetch", command: "git fetch origin", expectedLevel: "medium" },
 	{ name: "git commit", command: "git commit -m \"refactor: update\"", expectedLevel: "medium" },
 	{ name: "npm run typecheck", command: "npm run -s typecheck", expectedLevel: "medium" },
-	{ name: "npx tsx test", command: "npx --yes tsx --test agent/extensions/pi-sentry/src/tool-assessment.test.ts", expectedLevel: "medium" },
+	{ name: "npx tsx test", command: "npx --yes tsx --test agent/extensions/pi-sentry/test/tool-assessment.test.ts", expectedLevel: "medium" },
 	{ name: "mkdir -p", command: "mkdir -p /Users/elwin/.pi/tmp", expectedLevel: "medium" },
 
 	{ name: "git push bare", command: "git push", expectedLevel: "high" },

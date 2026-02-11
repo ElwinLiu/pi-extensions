@@ -4,7 +4,7 @@
   "description": "Permission/impact gate extension with execute prompt",
   "main": "index.ts",
   "scripts": {
-    "test:tool-assessment": "npx --yes tsx --test src/tool-assessment.test.ts"
+    "test:tool-assessment": "npx --yes tsx --test test/tool-assessment.test.ts"
   },
   "pi": {
     "extension": true
