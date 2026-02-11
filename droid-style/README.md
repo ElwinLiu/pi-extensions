@@ -15,11 +15,12 @@ A "droid" look for pi:
   - `!` / `!!` (bash modes) use a bright green prompt
 - Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
 - Assistant responses are prefixed with `•` in `#a35626`
+- Auto-activates the `droid` theme on session start
 
 ## Installation
 
 1. Copy to `~/.pi/agent/extensions/droid-style/`
-2. (Optional) select the `droid` theme in `/settings`
+2. Ensure the `droid` theme exists (for example `~/.pi/agent/themes/droid.json`)
 3. Reload extensions (`/reload`) or restart pi
 
 ## Notes

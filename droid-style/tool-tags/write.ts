@@ -1,10 +1,10 @@
-import type { ExtensionAPI, ToolRenderResultOptions } from "@mariozechner/pi-coding-agent";
-import { createWriteTool, renderDiff } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { createWriteTool } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 import { relative, resolve } from "node:path";
 
 import { stripAnsi } from "../ansi.js";
-import { badge, getTextOutput, parens, renderLines } from "./common.js";
+import { badge, getTextOutput, parens, stripTrailingNotice } from "./common.js";
 
 function resolveAbsolutePath(rawPath: string, cwd: string): string {
 	const path = rawPath.trim();
@@ -25,30 +25,27 @@ function resolveRelativePath(rawPath: string, cwd: string): string {
 	return relPath || ".";
 }
 
-function buildWriteDiff(filePath: string, content: string): string {
-	const normalized = (content ?? "").replace(/\r/g, "");
-	const lines = normalized.split("\n");
-	if (lines[lines.length - 1] === "") lines.pop();
+function parseWriteSummary(output: string): string | undefined {
+	const normalized = stripTrailingNotice(stripAnsi(output ?? "")).trim();
+	if (!normalized) return undefined;
 
-	const lineNumWidth = String(Math.max(lines.length, 1)).length;
-	const header = [`--- ${filePath}`, `+++ ${filePath}`];
-	const additions = lines.map((line, index) => `+${String(index + 1).padStart(lineNumWidth, " ")} ${line}`);
-
-	if (additions.length === 0) {
-		return [...header, ` ${"".padStart(lineNumWidth, " ")} (empty file)`].join("\n");
+	const lineMatch = normalized.match(/\bwrote\s+(\d+)\s+lines?\b/i);
+	if (lineMatch) {
+		const count = Number(lineMatch[1]);
+		if (Number.isFinite(count)) {
+			return `↳ Wrote ${count} ${count === 1 ? "line" : "lines"}.`;
+		}
 	}
 
-	return [...header, ...additions].join("\n");
-}
-
-function countDiffChanges(diff: string): { added: number; removed: number } {
-	let added = 0;
-	let removed = 0;
-	for (const line of diff.split("\n")) {
-		if (/^\+\s*\d+\s/.test(line)) added++;
-		else if (/^-\s*\d+\s/.test(line)) removed++;
+	const byteMatch = normalized.match(/\bwrote\s+(\d+)\s+bytes?\b/i);
+	if (byteMatch) {
+		const count = Number(byteMatch[1]);
+		if (Number.isFinite(count)) {
+			return `↳ Wrote ${count} ${count === 1 ? "byte" : "bytes"}.`;
+		}
 	}
-	return { added, removed };
+
+	return undefined;
 }
 
 export function registerWriteTool(pi: ExtensionAPI): void {
@@ -60,18 +57,7 @@ export function registerWriteTool(pi: ExtensionAPI): void {
 		parameters: baseWrite.parameters,
 		async execute(toolCallId, params, signal, _onUpdate, ctx) {
 			const tool = createWriteTool(ctx.cwd);
-			const rawPath = String((params as any)?.path ?? (params as any)?.file_path ?? "");
-			const relPath = resolveRelativePath(rawPath, ctx.cwd);
-			const content = String((params as any)?.content ?? "");
-			const result = await tool.execute(toolCallId, params as any, signal);
-			return {
-				...result,
-				details: {
-					...(result.details ?? {}),
-					__path: relPath,
-					__diff: buildWriteDiff(relPath, content),
-				},
-			};
+			return tool.execute(toolCallId, params as any, signal);
 		},
 		renderCall(args: any, theme: any) {
 			const rawPath = String(args?.path ?? args?.file_path ?? "");
@@ -79,27 +65,24 @@ export function registerWriteTool(pi: ExtensionAPI): void {
 			const detail = relPath || "(unknown)";
 			return new Text(`${badge(theme, "WRITE FILE")} ${parens(theme, detail)}`, 0, 0);
 		},
-		renderResult(result: any, options: ToolRenderResultOptions, theme: any) {
+		renderResult(result: any, _options, theme: any) {
+			const output = getTextOutput(result);
+
 			if (result.isError) {
-				const output = getTextOutput(result);
 				return new Text(`${theme.fg("error", stripAnsi(output).trim() || "Error")}`, 0, 0);
 			}
 
-			const diff = result.details?.__diff as string | undefined;
-			if (!diff) {
-				const output = stripAnsi(getTextOutput(result)).trim();
-				return new Text(output ? `${theme.fg("toolOutput", output)}` : "", 0, 0);
+			const summary = parseWriteSummary(output);
+			if (summary) {
+				return new Text(`${theme.fg("dim", summary)}`, 0, 0);
 			}
 
-			const { added, removed } = countDiffChanges(diff);
-			const summary = `↳ Succeeded. File written. (+${added} added, -${removed} removed)`;
+			const normalized = stripTrailingNotice(stripAnsi(output)).trim();
+			if (normalized) {
+				return new Text(`${theme.fg("dim", `↳ ${normalized}`)}`, 0, 0);
+			}
 
-			const renderedDiff = renderDiff(diff, { filePath: result.details?.__path });
-			const diffText = options.expanded
-				? renderedDiff
-				: renderLines(theme, renderedDiff, options, { maxLines: 20, color: "toolOutput" });
-
-			return new Text(`${theme.fg("dim", summary)}\n${diffText}`, 0, 0);
+			return new Text(`${theme.fg("dim", "↳ Wrote file.")}`, 0, 0);
 		},
 	});
 }

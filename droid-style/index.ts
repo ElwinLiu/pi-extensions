@@ -10,6 +10,9 @@ export default function (pi: ExtensionAPI) {
 	installCompactToolSpacing();
 
 	pi.on("session_start", (_event, ctx) => {
+		// Auto-activate the bundled droid theme (falls back to existing theme if unavailable).
+		ctx.ui.setTheme("droid");
+
 		registerToolCallTags(pi);
 		installAssistantMessagePrefix(ctx.ui.theme);
 		installUserMessagePrefix(ctx.ui.theme);
