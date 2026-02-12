@@ -1,4 +1,4 @@
-// Shared ANSI helpers for the droid-style extension
+// Shared ANSI helpers for the pi-neapple extension
 
 // Strip ANSI escape codes
 export function stripAnsi(str: string): string {

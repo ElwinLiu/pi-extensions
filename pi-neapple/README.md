@@ -1,4 +1,4 @@
-# Droid-style extension
+# Pi-neapple extension
 
 A "droid" look for pi:
 
@@ -13,7 +13,7 @@ A "droid" look for pi:
 - Prompt styling:
   - `>` uses the current theme's accent color
   - `!` / `!!` (bash modes) use a bright green prompt
-- Slash-command autocomplete dropdown is rendered in a bordered droid-style panel
+- Slash-command autocomplete dropdown is rendered in a bordered panel
   - selected row uses droid orange
   - footer hint shows navigation keys and visible range
 - Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
@@ -22,7 +22,7 @@ A "droid" look for pi:
 
 ## Installation
 
-1. Copy to `~/.pi/agent/extensions/droid-style/`
+1. Copy to `~/.pi/agent/extensions/pi-neapple/`
 2. Reload extensions (`/reload`) or restart pi
 
 The `droid` theme is bundled in this extension (`themes/droid.json`) and is discovered automatically.
