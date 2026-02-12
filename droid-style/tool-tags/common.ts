@@ -57,7 +57,7 @@ export function renderLines(
 	const lines = rawLines.length === 1 && rawLines[0] === "" ? [] : rawLines;
 
 	if (lines.length === 0) {
-		return theme.fg("dim", "(no output)");
+		return "";
 	}
 
 	if (options.expanded || lines.length <= cfg.maxLines) {
