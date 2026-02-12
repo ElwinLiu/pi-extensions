@@ -20,15 +20,6 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_start", (_event, ctx) => {
-		// Auto-activate droid theme. resources_discover runs after session_start,
-		// so retry on next tick if the first switch fails.
-		const tryApplyTheme = () => ctx.ui.setTheme("droid").success;
-		if (!tryApplyTheme()) {
-			setTimeout(() => {
-				tryApplyTheme();
-			}, 0);
-		}
-
 		registerToolCallTags(pi);
 		installAssistantMessagePrefix(ctx.ui.theme);
 		installUserMessagePrefix(ctx.ui.theme);

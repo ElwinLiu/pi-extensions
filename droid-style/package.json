@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Custom input box with closed rectangular border",
   "main": "index.ts",
+  "keywords": ["pi-package"],
   "pi": {
-    "extension": true
+    "extensions": ["./index.ts"],
+    "themes": ["./themes"]
   }
 }
