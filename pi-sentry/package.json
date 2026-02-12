@@ -7,6 +7,6 @@
     "test:tool-assessment": "npx --yes tsx --test test/tool-assessment.test.ts"
   },
   "pi": {
-    "extension": true
+    "extensions": ["./index.ts"]
   }
 }

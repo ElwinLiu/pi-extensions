@@ -4,6 +4,6 @@
   "description": "Expose ~/.agents/commands/*.md as /:<name> commands",
   "main": "index.ts",
   "pi": {
-    "extension": true
+    "extensions": ["./index.ts"]
   }
 }

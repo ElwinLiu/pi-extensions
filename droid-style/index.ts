@@ -11,6 +11,19 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, ctx) => {
 		registerToolCallTags(pi);
+
+		// Set the droid theme by default to ensure compatibility.
+		// The theme is registered via pi.themes in package.json when installed as a package.
+		// For local development, install as a local path package instead of auto-discovery:
+		//   pi install /path/to/droid-style
+		const result = ctx.ui.setTheme("droid");
+		if (!result.success) {
+			ctx.ui.notify(
+				'Droid theme not found. Install as a package: pi install /path/to/droid-style',
+				"warning",
+			);
+		}
+
 		installAssistantMessagePrefix(ctx.ui.theme);
 		installUserMessagePrefix(ctx.ui.theme);
 

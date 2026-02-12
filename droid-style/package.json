@@ -1,11 +1,17 @@
 {
   "name": "droid-style",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Custom input box with closed rectangular border",
   "main": "index.ts",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "pi": {
-    "extensions": ["./index.ts"],
-    "themes": ["./themes"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "themes": [
+      "./themes"
+    ]
   }
 }
