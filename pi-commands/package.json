@@ -1,5 +1,5 @@
 {
-  "name": "agents-commands",
+  "name": "@elwinliu/pi-commands",
   "version": "1.0.0",
   "description": "Expose ~/.agents/commands/*.md as /:<name> commands",
   "main": "index.ts",
