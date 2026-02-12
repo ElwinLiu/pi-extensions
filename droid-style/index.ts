@@ -1,5 +1,3 @@
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import { BoxEditor } from "./editor/box-editor.js";
@@ -8,16 +6,8 @@ import { installUserMessagePrefix } from "./messages/user-prefix.js";
 import { installCompactToolSpacing } from "./tool-tags/compact-tool-spacing.js";
 import { registerToolCallTags } from "./tool-tags/register-tool-call-tags.js";
 
-const baseDir = dirname(fileURLToPath(import.meta.url));
-
 export default function (pi: ExtensionAPI) {
 	installCompactToolSpacing();
-
-	pi.on("resources_discover", () => {
-		return {
-			themePaths: [join(baseDir, "themes", "droid.json")],
-		};
-	});
 
 	pi.on("session_start", (_event, ctx) => {
 		registerToolCallTags(pi);
