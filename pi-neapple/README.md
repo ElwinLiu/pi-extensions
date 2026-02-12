@@ -22,6 +22,12 @@ A "droid" look for pi:
 
 ## Installation
 
+### Via npm (recommended)
+```bash
+pi install @elwinliu/pi-neapple
+```
+
+### Manual
 1. Copy to `~/.pi/agent/extensions/pi-neapple/`
 2. Reload extensions (`/reload`) or restart pi
 
