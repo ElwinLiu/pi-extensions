@@ -46,7 +46,7 @@ function renderBadge(theme: ThemeLike, label: string): string {
 
 export function renderPermissionWidget(ctx: ExtensionContext, level: PermissionLevel): void {
 	if (!ctx.hasUI) return;
-	const config = loadConfig();
+	const config = loadConfig({ cwd: ctx.cwd });
 	const text = PERMISSION_LABELS[level];
 	const tone = PERMISSION_TONES[level];
 
@@ -56,7 +56,7 @@ export function renderPermissionWidget(ctx: ExtensionContext, level: PermissionL
 			render: (width: number) => {
 				const prefix = " ";
 				const available = Math.max(0, width - prefix.length);
-				const hintPlain = ` (${config.cycle_shorcut} to cycle)`;
+				const hintPlain = ` (${config.cycle_shortcut} to cycle)`;
 
 				let basePlain = text;
 				let hintShown = hintPlain;

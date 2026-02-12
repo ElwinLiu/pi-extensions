@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 
 import { PERMISSION_LEVEL_FLAG } from "./constants.js";
-import { loadConfig, savePermissionLevel } from "./config-loader.js";
+import { getGlobalConfigPath, loadConfig, savePermissionLevel } from "./config-loader.js";
 import { cycleLevel, DEFAULT_LEVEL, isPermissionLevel } from "./types.js";
 import type { PermissionLevel } from "./types.js";
 import { renderPermissionWidget } from "./ui.js";
@@ -46,7 +46,7 @@ export class PermissionLevelStore {
 	init(ctx: ExtensionContext): void {
 		this.latestContext = ctx;
 
-		const config = loadConfig();
+		const config = loadConfig({ cwd: ctx.cwd });
 		this.level = config.level;
 
 		const fromFlag = parsePermissionLevelFlag(this.pi);
@@ -66,7 +66,7 @@ export class PermissionLevelStore {
 		if (changed && options?.persist !== false) {
 			const persisted = savePermissionLevel(nextLevel);
 			if (!persisted) {
-				ctx.ui.notify("Failed to persist permission level to config.json", "error");
+				ctx.ui.notify(`Failed to persist permission level to ${getGlobalConfigPath()}`, "error");
 			}
 		}
 

@@ -5,7 +5,7 @@ import { AiAssessor } from "./ai-assessment.js";
 import { PermissionLevelStore } from "./level-store.js";
 import { authorize, classifyToolCall } from "./tool-assessment.js";
 import { setPermissionBadgeRenderer } from "./ui.js";
-import { loadConfig } from "./config-loader.js";
+import { getGlobalConfigPath, loadConfig, saveCycleShortcut } from "./config-loader.js";
 
 const PERMISSION_BADGE_RENDERER_SET_EVENT = "permission:ui:badge-renderer:set" as const;
 const PERMISSION_BADGE_RENDERER_REQUEST_EVENT = "permission:ui:badge-renderer:request" as const;
@@ -40,10 +40,48 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
 		type: "string",
 	});
 
-	pi.registerShortcut(config.cycle_shorcut, {
+	pi.registerShortcut(config.cycle_shortcut, {
 		description: "Cycle through permission levels (low → medium → YOLO)",
 		handler: () => {
 			levelStore.cycle();
+		},
+	});
+
+	pi.registerCommand("pi-sentry", {
+		description: "Set pi-sentry cycle shortcut (example: /pi-sentry ctrl+shift+p)",
+		handler: async (args, ctx) => {
+			const rawArgs = (args ?? "").trim();
+			if (!rawArgs) {
+				const current = loadConfig({ cwd: ctx.cwd }).cycle_shortcut;
+				ctx.ui.notify(`Current shortcut: ${current}`, "info");
+				ctx.ui.notify("Usage: /pi-sentry <key> [--reload]", "info");
+				return;
+			}
+
+			const parts = rawArgs.split(/\s+/).filter(Boolean);
+			const reloadNow = parts.includes("--reload");
+			const shortcutParts = parts.filter((part) => part !== "--reload");
+			const nextShortcut = shortcutParts.join(" ").trim();
+
+			if (!nextShortcut) {
+				ctx.ui.notify("Usage: /pi-sentry <key> [--reload]", "info");
+				return;
+			}
+
+			if (!saveCycleShortcut(nextShortcut)) {
+				ctx.ui.notify(`Failed to persist shortcut to ${getGlobalConfigPath()}`, "error");
+				return;
+			}
+
+			if (reloadNow) {
+				ctx.ui.notify(`Saved shortcut: ${nextShortcut}. Reloading...`, "info");
+				await ctx.reload();
+				return;
+			}
+
+			ctx.ui.notify(`Saved shortcut: ${nextShortcut}`, "info");
+			ctx.ui.notify("It will take effect after /reload (or restart pi).", "info");
+			return;
 		},
 	});
 

@@ -1,12 +1,33 @@
 {
   "name": "pi-sentry",
   "version": "1.0.0",
-  "description": "Permission/impact gate extension with execute prompt",
+  "description": "Permission/impact gate extension for pi coding agent",
   "main": "index.ts",
   "scripts": {
     "test:tool-assessment": "npx --yes tsx --test test/tool-assessment.test.ts"
   },
+  "keywords": [
+    "pi-coding-agent",
+    "extension",
+    "security",
+    "permissions"
+  ],
+  "author": "ElwinLiu",
+  "license": "MIT",
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-ai": "*"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "config.default.json",
+    "rules.ts",
+    "README.md"
+  ],
   "pi": {
-    "extensions": ["./index.ts"]
+    "extensions": [
+      "./index.ts"
+    ]
   }
 }

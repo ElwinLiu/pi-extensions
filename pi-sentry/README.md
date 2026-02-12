@@ -28,27 +28,34 @@ From current implementation:
 
 ## Usage
 
-- Keyboard shortcut: cycles levels (`low → medium → YOLO`) and persists to `config.json`
+- Keyboard shortcut: cycles levels (`low → medium → YOLO`) and persists the selected level.
+- Set shortcut from pi: `/pi-sentry <key>` (example: `/pi-sentry ctrl+shift+p`)
+  - takes effect after `/reload` (or restarting pi)
+  - use `/pi-sentry <key> --reload` to apply immediately
 - CLI flag: `--permission-level <low|medium|YOLO>` (applies to current run)
-- Config default/override files:
-  - `config.default.json`
-  - `config.json`
 
 ## Configuration
 
-Two-file merge (user overrides win):
+`pi-sentry` merges config in this order (later wins):
 
-- `config.default.json` — shipped defaults
-- `config.json` — local overrides
+1. Built-in defaults
+2. `config.default.json` (packaged with extension)
+3. Global user config: `~/.pi/agent/pi-sentry/config.json`
+4. Project override: `.pi/pi-sentry/config.json`
 
-Example:
+### Config fields
 
 ```json
 {
-  "cycle_shorcut": "shift+tab",
-  "level": "YOLO"
+  "cycle_shortcut": "shift+tab",
+  "level": "medium"
 }
 ```
+
+- `cycle_shortcut`: keybinding used for cycling permission levels
+- `level`: initial level (`low`, `medium`, or `YOLO`)
+
+> Backward compatibility: legacy key `cycle_shorcut` is still accepted.
 
 ## Testing
 
