@@ -7,6 +7,15 @@ import { stripAnsi } from "../ansi.js";
 import { badge, getTextOutput, parens, replaceTabs } from "./common.js";
 
 const MAX_BASH_PREVIEW_LINES = 5;
+const BASH_TOOL_NOTICE_PATTERN = /^\[Showing (?:last|lines)\b.*\. Full output: .+\]$/;
+
+function stripBashToolNoticeLines(text: string): string {
+	const filteredLines = text
+		.replace(/\r/g, "")
+		.split("\n")
+		.filter((line) => !BASH_TOOL_NOTICE_PATTERN.test(line.trim()));
+	return filteredLines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
 
 function createBashResultPreview(
 	theme: any,
@@ -70,7 +79,7 @@ export function registerBashTool(pi: ExtensionAPI): void {
 			};
 		},
 		renderResult(result, options, theme: any) {
-			const output = stripAnsi(getTextOutput(result).trimEnd());
+			const output = stripBashToolNoticeLines(stripAnsi(getTextOutput(result)));
 			return createBashResultPreview(theme, output, options, result.isError ? "error" : "toolOutput");
 		},
 	});
