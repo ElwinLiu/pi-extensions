@@ -178,8 +178,8 @@ export function installAssistantMessagePrefix(theme: any): void {
 			if (!targetChild || typeof targetChild.render !== "function") return;
 
 			const childState = targetChild as any;
-			if (childState.__droidAssistantResponsePrefixPatched) return;
-			childState.__droidAssistantResponsePrefixPatched = true;
+			if (childState.__assistantResponsePrefixPatched) return;
+			childState.__assistantResponsePrefixPatched = true;
 
 			const baseChildRender = targetChild.render.bind(targetChild);
 			targetChild.render = (width: number): string[] => {

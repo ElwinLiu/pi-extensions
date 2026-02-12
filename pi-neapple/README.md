@@ -1,6 +1,6 @@
 # Pi-neapple extension
 
-A "droid" look for pi:
+A custom look for pi:
 
 - a boxed input editor
 - custom tool-call badges for the built-in tools
@@ -14,24 +14,24 @@ A "droid" look for pi:
   - `>` uses the current theme's accent color
   - `!` / `!!` (bash modes) use a bright green prompt
 - Slash-command autocomplete dropdown is rendered in a bordered panel
-  - selected row uses droid orange
+  - selected row uses accent orange
   - footer hint shows navigation keys and visible range
-- Droid-style tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
+- Tool-call badges for: `read`, `write`, `edit`, `ls`, `find`, `grep`, `bash` (badge bg: `#feb17f`)
 - Assistant responses are prefixed with `•` in `#a35626`
-- Auto-activates the `droid` theme on session start
+- Auto-activates the `neapple` theme on session start
 
 ## Installation
 
 ### Via npm (recommended)
 ```bash
-pi install @elwinliu/pi-neapple
+pi install npm:@elwinliu/pi-neapple
 ```
 
 ### Manual
 1. Copy to `~/.pi/agent/extensions/pi-neapple/`
 2. Reload extensions (`/reload`) or restart pi
 
-The `droid` theme is bundled in this extension (`themes/droid.json`) and is discovered automatically.
+The `neapple` theme is bundled in this extension (`themes/neapple.json`) and is discovered automatically.
 
 ## Notes
 

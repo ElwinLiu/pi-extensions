@@ -1,6 +1,6 @@
 import { ToolExecutionComponent } from "@mariozechner/pi-coding-agent";
 
-const PATCH_FLAG = "__droidStyleCompactToolSpacingPatched__";
+const PATCH_FLAG = "__compactToolSpacingPatched__";
 
 /**
  * Make tool blocks compact by removing Box/Text vertical padding.

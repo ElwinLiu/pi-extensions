@@ -12,14 +12,14 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		registerToolCallTags(pi);
 
-		// Set the droid theme by default to ensure compatibility.
+		// Set the neapple theme by default to ensure compatibility.
 		// The theme is registered via pi.themes in package.json when installed as a package.
 		// For local development, install as a local path package instead of auto-discovery:
 		//   pi install /path/to/pi-neapple
-		const result = ctx.ui.setTheme("droid");
+		const result = ctx.ui.setTheme("neapple");
 		if (!result.success) {
 			ctx.ui.notify(
-				'Droid theme not found. Install as a package: pi install /path/to/pi-neapple',
+				'Neapple theme not found. Install as a package: pi install /path/to/pi-neapple',
 				"warning",
 			);
 		}
